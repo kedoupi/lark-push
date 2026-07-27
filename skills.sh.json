@@ -1,0 +1,11 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Feishu / Lark",
+      "description": "Push code updates, daily/weekly reports, and release notices to Feishu or Lark chats.",
+      "skills": ["lark-push"]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+COMMIT="$(git log -1 --pretty=format:'%h %s')"
+AUTHOR="$(git log -1 --pretty=format:'%an')"
+BRANCH="$(git branch --show-current 2>/dev/null || true)"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+REPO_NAME="$(basename "$REPO_ROOT")"
+
+BODY="Repo: ${REPO_NAME}
+Branch: ${BRANCH:-unknown}
+Commit: ${COMMIT}
+Author: ${AUTHOR}"
+
+"${SCRIPT_DIR}/lark-push" \
+  --kind code \
+  --title "Commit pushed" \
+  --body "$BODY"

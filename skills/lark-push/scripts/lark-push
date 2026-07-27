@@ -1,0 +1,347 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+# Optional user config (never commit secrets into the skill)
+CONFIG_FILE="${LARK_PUSH_CONFIG:-$HOME/.config/lark-push/config.env}"
+if [[ -f "$CONFIG_FILE" ]]; then
+  # shellcheck disable=SC1090
+  set -a
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+  set +a
+fi
+
+CHAT_ID="${LARK_PUSH_CHAT_ID:-}"
+AS_IDENTITY="${LARK_PUSH_AS:-bot}"
+FOOTER="${LARK_PUSH_FOOTER:-via lark-push}"
+KIND="notice"
+TITLE=""
+BODY=""
+BODY_FILE=""
+FORMAT="card"
+DRY_RUN=0
+INCLUDE_CONTEXT=1
+IDEMPOTENCY_KEY=""
+
+usage() {
+  cat <<'EOF'
+Usage:
+  lark-push [options]
+
+Options:
+  --kind <code|daily|weekly|release|notice>
+  --format <card|markdown>     Default: card
+  --title <text>
+  --body <text>
+  --from-file <path>
+  --chat-id <oc_xxx>          Override LARK_PUSH_CHAT_ID
+  --as <bot|user>             Default: bot (or LARK_PUSH_AS)
+  --idempotency-key <key>
+  --dry-run                   Preview request without sending
+  --no-context                Do not add repo/branch context
+  -h, --help
+
+Environment:
+  LARK_PUSH_CHAT_ID           Default target chat id (required unless --chat-id)
+  LARK_PUSH_AS                bot|user (default: bot)
+  LARK_PUSH_FOOTER            Card footer caption (default: via lark-push)
+  LARK_PUSH_CONFIG            Optional env file (default: ~/.config/lark-push/config.env)
+
+Examples:
+  lark-push --dry-run --kind code --title "Code task complete" --body "Tests passed."
+  cat daily.md | lark-push --kind daily --title "Daily report"
+  lark-push --kind weekly --title "Weekly report" --from-file weekly.md
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --kind)
+      KIND="${2:-}"
+      shift 2
+      ;;
+    --format)
+      FORMAT="${2:-}"
+      shift 2
+      ;;
+    --title)
+      TITLE="${2:-}"
+      shift 2
+      ;;
+    --body)
+      BODY="${2:-}"
+      shift 2
+      ;;
+    --from-file)
+      BODY_FILE="${2:-}"
+      shift 2
+      ;;
+    --chat-id)
+      CHAT_ID="${2:-}"
+      shift 2
+      ;;
+    --as)
+      AS_IDENTITY="${2:-}"
+      shift 2
+      ;;
+    --idempotency-key)
+      IDEMPOTENCY_KEY="${2:-}"
+      shift 2
+      ;;
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    --no-context)
+      INCLUDE_CONTEXT=0
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+case "$KIND" in
+  code|daily|weekly|release|notice) ;;
+  *)
+    echo "Invalid --kind: $KIND" >&2
+    exit 2
+    ;;
+esac
+
+case "$FORMAT" in
+  card|markdown) ;;
+  *)
+    echo "Invalid --format: $FORMAT" >&2
+    exit 2
+    ;;
+esac
+
+case "$AS_IDENTITY" in
+  bot|user) ;;
+  *)
+    echo "Invalid --as: $AS_IDENTITY (use bot|user)" >&2
+    exit 2
+    ;;
+esac
+
+if [[ -z "$CHAT_ID" ]]; then
+  echo "Missing chat id. Set LARK_PUSH_CHAT_ID or pass --chat-id." >&2
+  exit 2
+fi
+
+if [[ -n "$BODY_FILE" ]]; then
+  if [[ ! -f "$BODY_FILE" ]]; then
+    echo "Body file does not exist: $BODY_FILE" >&2
+    exit 2
+  fi
+  BODY="$(<"$BODY_FILE")"
+elif [[ -z "$BODY" && ! -t 0 ]]; then
+  BODY="$(cat)"
+fi
+
+if [[ -z "$TITLE" ]]; then
+  case "$KIND" in
+    code) TITLE="Code update" ;;
+    daily) TITLE="Daily report" ;;
+    weekly) TITLE="Weekly report" ;;
+    release) TITLE="Release notice" ;;
+    notice) TITLE="Notice" ;;
+  esac
+fi
+
+if [[ -z "$BODY" ]]; then
+  echo "Message body is empty. Use --body, --from-file, or stdin." >&2
+  exit 2
+fi
+
+case "$KIND" in
+  code) ICON="💻"; LABEL="Code" ;;
+  daily) ICON="🗓️"; LABEL="Daily" ;;
+  weekly) ICON="📊"; LABEL="Weekly" ;;
+  release) ICON="🚀"; LABEL="Release" ;;
+  notice) ICON="🔔"; LABEL="Notice" ;;
+esac
+
+NOW="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+CONTEXT=""
+SOURCE_TEXT=""
+
+if [[ "$INCLUDE_CONTEXT" -eq 1 ]]; then
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    REPO_NAME="$(basename "$REPO_ROOT")"
+    BRANCH="$(git branch --show-current 2>/dev/null || true)"
+    SHA="$(git rev-parse --short HEAD 2>/dev/null || true)"
+    SOURCE_TEXT="${REPO_NAME}${BRANCH:+ / ${BRANCH}}${SHA:+ @ ${SHA}}"
+    CONTEXT=$'\n'"**Source**: ${SOURCE_TEXT}"
+  else
+    SOURCE_TEXT="$(basename "$PWD")"
+    CONTEXT=$'\n'"**Source**: ${SOURCE_TEXT}"
+  fi
+fi
+
+if [[ "$FORMAT" == "markdown" ]]; then
+  MESSAGE="#### ${ICON} ${TITLE}
+
+**Type**: ${LABEL}
+**Time**: ${NOW}${CONTEXT}
+
+${BODY}"
+fi
+
+if [[ -z "$IDEMPOTENCY_KEY" ]]; then
+  IDEMPOTENCY_KEY="lark-push-${KIND}-$(date '+%Y%m%d%H%M%S')-${RANDOM}"
+fi
+
+if ! command -v lark-cli >/dev/null 2>&1; then
+  echo "lark-cli not found in PATH. Install and authenticate first." >&2
+  exit 127
+fi
+
+if [[ "$FORMAT" == "card" ]]; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required to build Card 2.0 JSON." >&2
+    exit 127
+  fi
+
+  CARD_JSON="$(
+    CARD_KIND="$KIND" \
+    CARD_TITLE="$TITLE" \
+    CARD_LABEL="$LABEL" \
+    CARD_NOW="$NOW" \
+    CARD_SOURCE="$SOURCE_TEXT" \
+    CARD_BODY="$BODY" \
+    CARD_FOOTER="$FOOTER" \
+    python3 - <<'PY'
+import json
+import os
+
+kind = os.environ["CARD_KIND"]
+title = os.environ["CARD_TITLE"]
+label = os.environ["CARD_LABEL"]
+now = os.environ["CARD_NOW"]
+source = os.environ.get("CARD_SOURCE", "")
+body = os.environ["CARD_BODY"]
+footer = os.environ.get("CARD_FOOTER", "via lark-push")
+
+theme = {
+    "code": ("green", "green", "todo_colorful", "green-50", "green"),
+    "daily": ("blue", "blue", "calendar_colorful", "blue-50", "blue"),
+    "weekly": ("violet", "violet", "chart_colorful", "violet-50", "violet"),
+    "release": ("turquoise", "turquoise", "notice_colorful", "turquoise-50", "turquoise"),
+    "notice": ("blue", "blue", "notice_colorful", "blue-50", "blue"),
+}.get(kind, ("blue", "blue", "notice_colorful", "blue-50", "blue"))
+
+header_template, tag_color, icon, bg, font_color = theme
+
+meta_columns = [
+    ("Type", label),
+    ("Time", now),
+]
+
+if source:
+    meta_columns.append(("Source", source))
+
+card = {
+    "schema": "2.0",
+    "config": {
+        "update_multi": True,
+        "width_mode": "default",
+        "summary": {"content": f"{title} · {label}"},
+        "style": {
+            "text_size": {
+                "caption": {"default": "notation", "pc": "notation", "mobile": "notation"},
+                "body": {"default": "normal", "pc": "normal", "mobile": "normal"},
+            }
+        },
+    },
+    "header": {
+        "title": {"tag": "plain_text", "content": title},
+        "subtitle": {"tag": "plain_text", "content": f"{label} · {now}"},
+        "template": header_template,
+        "icon": {"tag": "standard_icon", "token": icon},
+        "text_tag_list": [
+            {"tag": "text_tag", "text": {"tag": "plain_text", "content": label}, "color": tag_color}
+        ],
+    },
+    "body": {
+        "direction": "vertical",
+        "padding": "12px 12px 20px 12px",
+        "vertical_spacing": "12px",
+        "elements": [
+            {
+                "tag": "column_set",
+                "flex_mode": "flow",
+                "horizontal_spacing": "8px",
+                "margin": "0px",
+                "columns": [
+                    {
+                        "tag": "column",
+                        "width": "weighted",
+                        "weight": 1,
+                        "background_style": "grey-50",
+                        "padding": "10px 12px 10px 12px",
+                        "vertical_spacing": "2px",
+                        "elements": [
+                            {"tag": "markdown", "content": f"<font color='grey'>{name}</font>", "text_size": "caption"},
+                            {"tag": "markdown", "content": f"**{value}**", "text_size": "body"},
+                        ],
+                    }
+                    for name, value in meta_columns
+                ],
+            },
+            {
+                "tag": "column_set",
+                "flex_mode": "none",
+                "margin": "0px",
+                "columns": [
+                    {
+                        "tag": "column",
+                        "width": "weighted",
+                        "weight": 1,
+                        "background_style": bg,
+                        "padding": "12px 12px 12px 12px",
+                        "vertical_spacing": "4px",
+                        "elements": [
+                            {"tag": "markdown", "content": f"**<font color='{font_color}'>Content</font>**"},
+                            {"tag": "markdown", "content": body, "text_size": "body"},
+                        ],
+                    }
+                ],
+            },
+            {
+                "tag": "markdown",
+                "content": f"<font color='grey'>{footer}</font>",
+                "text_size": "caption",
+                "text_align": "right",
+            },
+        ],
+    },
+}
+
+print(json.dumps(card, ensure_ascii=False, separators=(",", ":")))
+PY
+  )"
+  CMD=(lark-cli im +messages-send --as "$AS_IDENTITY" --chat-id "$CHAT_ID" --msg-type interactive --content "$CARD_JSON" --idempotency-key "$IDEMPOTENCY_KEY" --json)
+else
+  CMD=(lark-cli im +messages-send --as "$AS_IDENTITY" --chat-id "$CHAT_ID" --markdown "$MESSAGE" --idempotency-key "$IDEMPOTENCY_KEY" --json)
+fi
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  CMD+=(--dry-run)
+fi
+
+# SCRIPT_DIR kept for future local helpers; silence unused warning in shells that check it
+: "${SCRIPT_DIR}"
+
+LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 "${CMD[@]}"
