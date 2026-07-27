@@ -10,6 +10,58 @@
 [![skills.sh](https://skills.sh/b/kedoupi/lark-push)](https://skills.sh/kedoupi/lark-push)
 [![GitHub](https://img.shields.io/badge/GitHub-kedoupi%2Flark--push-181717?logo=github)](https://github.com/kedoupi/lark-push)
 
+<p align="center">
+  <img src="docs/screenshots/daily-project.png" alt="飞书群内的项目日报卡片" width="420" />
+</p>
+
+## 为什么需要这个 skill？
+
+编码 Agent 在终端里完成工作，团队协作却在 **飞书 / Lark**。  
+`lark-push` 把两端接上：任务完成、日报、发布说明写好后，Agent 直接把 Card 2.0 卡片推到项目群——不用打开飞书客户端，也不用临时拼 API。
+
+## 主要使用场景
+
+| 场景 | Kind | 什么时候用 |
+| --- | --- | --- |
+| **代码任务完成** | `code` | 实现完成、测试通过、PR 打开 / 合并 |
+| **日报 / 站会同步** | `daily` | 日终：今日完成、阻塞、明日计划 |
+| **单产品线日更** | `daily` 或 `weekly` | 聚焦一条业务线（如 CodeTrace）的进展摘要 |
+| **周报** | `weekly` | 本周重点、进展、风险、下周计划 |
+| **发布 / 上线说明** | `release` | 版本上线、环境、回滚说明 |
+| **运维 / 安装通知** | `notice` | skill 安装完成、配置变更、临时提醒 |
+| **提交后自动通知**（可选） | `code` | 通过 git post-commit 钩子本地提交后推送 |
+
+典型流程：
+
+```text
+Agent 完成工作
+    → lark-push 组装 Card 2.0（标题、类型、时间、仓库上下文、正文）
+    → 建国 / 你的机器人推到项目群
+    → 同事不用再问「做完了吗」
+```
+
+## 截图
+
+以下为真实推送到飞书群的 Card 2.0 消息。
+
+### 项目日报
+
+面向整个 monorepo 的日终多工作流汇总。
+
+![项目日报](docs/screenshots/daily-project.png)
+
+### 功能线日报
+
+单产品线日更（进展、验证结果、PR、待发布门禁）。
+
+![功能线日报](docs/screenshots/daily-feature.png)
+
+### 安装 / 运维通知
+
+本机完成 skill 安装与配置后的一次性通知。
+
+![安装通知](docs/screenshots/notice-install.png)
+
 ## 功能
 
 - 一条命令多 Agent 安装：`npx skills add kedoupi/lark-push`
@@ -216,6 +268,8 @@ skills/
     templates/
       daily.md
       weekly.md
+docs/
+  screenshots/               # README 使用的飞书卡片截图
 README.md                    # 英文（默认）
 README.zh-CN.md              # 中文
 LICENSE

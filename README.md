@@ -10,6 +10,58 @@ Works with Claude Code, Codex, Cursor, OpenCode, Grok Build, and [70+ agents](ht
 [![skills.sh](https://skills.sh/b/kedoupi/lark-push)](https://skills.sh/kedoupi/lark-push)
 [![GitHub](https://img.shields.io/badge/GitHub-kedoupi%2Flark--push-181717?logo=github)](https://github.com/kedoupi/lark-push)
 
+<p align="center">
+  <img src="docs/screenshots/daily-project.png" alt="Project daily report card in Feishu" width="420" />
+</p>
+
+## Why this skill?
+
+Coding agents finish work in a terminal. Teams still coordinate in **Feishu / Lark**.  
+`lark-push` bridges that gap: when a task, daily summary, or release is done, the agent posts a clean Card 2.0 message into your project group—without opening the Feishu app or writing ad-hoc API code.
+
+## Primary use cases
+
+| Scenario | Kind | When to use |
+| --- | --- | --- |
+| **Code task done** | `code` | Implementation finished, tests passed, PR opened / merged |
+| **Daily standup report** | `daily` | End of day: what shipped, blockers, next steps |
+| **Feature / sprint digest** | `daily` or `weekly` | A focused slice (e.g. one product line) summarized for the group |
+| **Weekly report** | `weekly` | Week focus, progress, risks, next week plan |
+| **Release / deploy note** | `release` | Version shipped, env, rollback notes |
+| **Ops / setup notice** | `notice` | Skill installed, config changed, heads-up messages |
+| **Post-commit notify** (optional) | `code` | Auto ping after local commits via git hook |
+
+Typical flow:
+
+```text
+Agent finishes work
+    → lark-push builds Card 2.0 (title, type, time, repo context, body)
+    → 建国 / your bot posts to the project group
+    → Teammates see progress without asking "is it done?"
+```
+
+## Screenshots
+
+Real messages posted to a Feishu group (Card 2.0).
+
+### Project daily report
+
+End-of-day multi-workstream summary for the whole monorepo.
+
+![Project daily report](docs/screenshots/daily-project.png)
+
+### Feature daily report
+
+Focused daily for one product track (progress, verification, PR, remaining gates).
+
+![Feature daily report](docs/screenshots/daily-feature.png)
+
+### Setup / ops notice
+
+One-off notice after installing and configuring the skill on a machine.
+
+![Install notice](docs/screenshots/notice-install.png)
+
 ## Features
 
 - One command install for multi-agent environments: `npx skills add kedoupi/lark-push`
@@ -216,6 +268,8 @@ skills/
     templates/
       daily.md
       weekly.md
+docs/
+  screenshots/               # Feishu card screenshots used in README
 README.md                    # English (default)
 README.zh-CN.md              # Chinese
 LICENSE
