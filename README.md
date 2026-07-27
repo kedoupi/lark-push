@@ -9,7 +9,7 @@ Works with Claude Code, Codex, Cursor, OpenCode, and [70+ agents](https://github
 ## Install
 
 ```bash
-# Global (all projects)
+# Global, all agents (symlink mode recommended)
 npx skills add kedoupi/lark-push -g --all
 
 # Project-level
@@ -17,80 +17,114 @@ npx skills add kedoupi/lark-push --all
 
 # Specific agents only
 npx skills add kedoupi/lark-push -g -a claude-code -a codex -a cursor -y
+
+# Copy mode instead of symlink
+npx skills add kedoupi/lark-push -g --all --copy
 ```
 
-List skills in this repo without installing:
+List without installing:
 
 ```bash
 npx skills add kedoupi/lark-push --list
 ```
 
+## How skills install modes affect config
+
+| Mode | Layout | Config strategy |
+| --- | --- | --- |
+| **symlink** (default) | Canonical package at `~/.agents/skills/lark-push/`; agents symlink to it | Write **one** durable config next to that canonical package |
+| **copy** | Independent full copy per agent | Each agent has its own durable config **or** use `--target global` once |
+
+`npx skills update` deletes and re-copies the skill package directory.  
+Therefore local secrets/settings must **not** live only inside the package.
+
+### Durable config (recommended)
+
+Config follows the **skills parent directory**, as a sibling of the package:
+
+```text
+~/.agents/skills/
+  lark-push/                         # skill package (wiped on update)
+  .skill-data/
+    lark-push/
+      config.env                     # durable config (kept on update)
+```
+
+After install:
+
+```bash
+# Typical global symlink install
+bash ~/.agents/skills/lark-push/scripts/lark-push init --chat-id oc_xxxxxxxx
+
+# Optional footer / identity
+bash ~/.agents/skills/lark-push/scripts/lark-push init \
+  --chat-id oc_xxxxxxxx \
+  --as bot \
+  --footer "via my bot"
+
+# Shared config when using copy mode across many agents
+bash ~/.agents/skills/lark-push/scripts/lark-push init \
+  --target global \
+  --chat-id oc_xxxxxxxx
+```
+
+Inspect:
+
+```bash
+bash ~/.agents/skills/lark-push/scripts/lark-push config-path
+bash ~/.agents/skills/lark-push/scripts/lark-push which-config
+```
+
+### Load order (later wins)
+
+1. `~/.config/lark-push/config.env` (legacy)
+2. `~/.agents/skills/.skill-data/lark-push/config.env` (shared global)
+3. `<skills-parent>/.skill-data/lark-push/config.env` (install-local durable)
+4. `<skill-root>/config.local.env` (in-package; **wiped by update**)
+5. `$LARK_PUSH_CONFIG`
+6. CLI flags
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LARK_PUSH_CHAT_ID` | _(required)_ | Target chat id |
+| `LARK_PUSH_AS` | `bot` | `bot` or `user` |
+| `LARK_PUSH_FOOTER` | `via lark-push` | Card footer |
+| `LARK_PUSH_CONFIG` | _(unset)_ | Explicit env file path |
+
 ## Prerequisites
 
 1. [lark-cli](https://github.com/larksuite/cli) installed and authenticated
-2. A Feishu / Lark bot (or user identity) that can send messages to your target chat
-3. Target chat id (`oc_xxx`)
+2. Bot/user allowed to send messages to the target chat
+3. `lark-push init` completed (or env/flags provided)
 
 ```bash
-# Verify auth
 LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
   lark-cli auth status --json --verify
 ```
 
-## Configuration
-
-Set the default target chat (required unless you always pass `--chat-id`):
-
-```bash
-export LARK_PUSH_CHAT_ID="oc_xxxxxxxx"
-```
-
-Optional:
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `LARK_PUSH_CHAT_ID` | _(empty)_ | Default group / chat id |
-| `LARK_PUSH_AS` | `bot` | Send as `bot` or `user` |
-| `LARK_PUSH_FOOTER` | `via lark-push` | Card footer caption |
-| `LARK_PUSH_CONFIG` | `~/.config/lark-push/config.env` | Optional env file auto-loaded if present |
-
-Example config file:
-
-```bash
-# ~/.config/lark-push/config.env
-LARK_PUSH_CHAT_ID=oc_xxxxxxxx
-LARK_PUSH_AS=bot
-LARK_PUSH_FOOTER=via my-team bot
-```
-
 ## Usage
-
-After install, the skill lives under your agent skills directory, for example:
-
-- `~/.agents/skills/lark-push/`
-- `~/.codex/skills/lark-push/`
-- `~/.claude/skills/lark-push/`
-- `./.agents/skills/lark-push/` (project scope)
 
 ```bash
 # Preview
-scripts/lark-push \
+bash ~/.agents/skills/lark-push/scripts/lark-push \
   --dry-run \
   --kind code \
   --title "Code task complete" \
   --body "Implementation done. Local tests passed."
 
 # Daily report from stdin
-cat daily.md | scripts/lark-push --kind daily --title "Daily report"
+cat daily.md | bash ~/.agents/skills/lark-push/scripts/lark-push \
+  --kind daily \
+  --title "Daily report"
 
 # Weekly report from file
-scripts/lark-push \
+bash ~/.agents/skills/lark-push/scripts/lark-push \
   --kind weekly \
   --title "Weekly report" \
   --from-file weekly.md
 
-# Override target chat for one send
-scripts/lark-push \
+# One-off override
+bash ~/.agents/skills/lark-push/scripts/lark-push \
   --chat-id oc_other \
   --kind notice \
   --title "Heads up" \
@@ -114,15 +148,27 @@ scripts/lark-push \
 | `card` | default; Feishu Card 2.0 interactive card |
 | `markdown` | lightweight markdown post |
 
+## Why not only put config inside the skill folder?
+
+Because skills install/update does this for the package dir:
+
+1. delete skill directory
+2. copy fresh files from the repo
+
+So in-package `config.env` is convenient for a quick test, but disappears on update.  
+Sibling `.skill-data/` keeps the mental model of “follows this skill install” without being wiped.
+
+`npx skills add` also has **no post-install hook**, so config cannot be written automatically during install.  
+`lark-push init` is the intentional setup step.
+
 ## Git post-commit hook (optional)
 
 ```bash
-# From a git repo root
-ln -sf "$(pwd)/path/to/skills/lark-push/scripts/git-post-commit-lark-push" \
+ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
   .git/hooks/post-commit
 ```
 
-Ensure `LARK_PUSH_CHAT_ID` is available in your shell environment (or config file) before committing.
+Ensure durable config exists first (`lark-push init`).
 
 ## Agent safety
 
@@ -132,7 +178,7 @@ Messages are visible in the group. Agents should confirm:
 - message content
 - sending identity (`bot` / `user`)
 
-Use `--dry-run` for previews. Running the helper script yourself counts as approval.
+Use `--dry-run` for previews. Running the helper yourself counts as approval.
 
 ## Repository layout
 
@@ -140,6 +186,7 @@ Use `--dry-run` for previews. Running the helper script yourself counts as appro
 skills/
   lark-push/
     SKILL.md
+    config.example.env
     scripts/
       lark-push
       git-post-commit-lark-push
@@ -147,8 +194,6 @@ skills/
       daily.md
       weekly.md
 ```
-
-Compatible with `npx skills add <owner/repo>` discovery (skills under `skills/`).
 
 ## License
 

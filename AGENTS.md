@@ -30,16 +30,24 @@ skills/
 - Scripts must resolve their own directory and work after install to any agent path.
 - Prefer bash + `lark-cli`; avoid extra runtime dependencies beyond `python3` for JSON card build.
 
+## Config design
+
+- Do **not** store secrets only inside the skill package: `npx skills update` wipes that directory.
+- Durable config lives at `<skills-parent>/.skill-data/lark-push/config.env`.
+- After install users run `bash scripts/lark-push init --chat-id oc_xxx`.
+- `npx skills add` has no post-install hook; init is intentional.
+
 ## Local validation
 
 ```bash
 # List discoverable skills
 npx skills add ./ --list
 
-# Dry-run helper (requires lark-cli for non-dry-run)
+# Init durable config next to a simulated install tree, then dry-run
+bash skills/lark-push/scripts/lark-push init --chat-id oc_example --force
+bash skills/lark-push/scripts/lark-push which-config
 bash skills/lark-push/scripts/lark-push \
   --dry-run \
-  --chat-id oc_example \
   --kind code \
   --title "Test" \
   --body "hello"
