@@ -1,15 +1,28 @@
 # lark-push
 
-Push concise Feishu / Lark notifications from any coding agent.
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
-Works with Claude Code, Codex, Cursor, OpenCode, and [70+ agents](https://github.com/vercel-labs/skills#supported-agents) via the [skills CLI](https://skills.sh/).
+Push concise **Feishu / Lark** notifications from coding agents.
 
+Works with Claude Code, Codex, Cursor, OpenCode, Grok Build, and [70+ agents](https://github.com/vercel-labs/skills#supported-agents) via the [skills CLI](https://skills.sh/).
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![skills.sh](https://skills.sh/b/kedoupi/lark-push)](https://skills.sh/kedoupi/lark-push)
+[![GitHub](https://img.shields.io/badge/GitHub-kedoupi%2Flark--push-181717?logo=github)](https://github.com/kedoupi/lark-push)
+
+## Features
+
+- One command install for multi-agent environments: `npx skills add kedoupi/lark-push`
+- Card 2.0 interactive messages (default) or lightweight markdown
+- Message kinds: `code` / `daily` / `weekly` / `release` / `notice`
+- Config follows the skill install tree and **survives** `npx skills update`
+- Optional git post-commit hook
+- Built on official [`lark-cli`](https://github.com/larksuite/cli)
 
 ## Install
 
 ```bash
-# Global, all agents (symlink mode recommended)
+# Global (recommended): install for all supported agents
 npx skills add kedoupi/lark-push -g --all
 
 # Project-level
@@ -22,51 +35,93 @@ npx skills add kedoupi/lark-push -g -a claude-code -a codex -a cursor -y
 npx skills add kedoupi/lark-push -g --all --copy
 ```
 
-List without installing:
+List skills without installing:
 
 ```bash
 npx skills add kedoupi/lark-push --list
 ```
 
-## How skills install modes affect config
+Browse on [skills.sh](https://skills.sh/kedoupi/lark-push).
 
-| Mode | Layout | Config strategy |
-| --- | --- | --- |
-| **symlink** (default) | Canonical package at `~/.agents/skills/lark-push/`; agents symlink to it | Write **one** durable config next to that canonical package |
-| **copy** | Independent full copy per agent | Each agent has its own durable config **or** use `--target global` once |
+## Prerequisites
 
-`npx skills update` deletes and re-copies the skill package directory.  
-Therefore local secrets/settings must **not** live only inside the package.
-
-### Durable config (recommended)
-
-Config follows the **skills parent directory**, as a sibling of the package:
-
-```text
-~/.agents/skills/
-  lark-push/                         # skill package (wiped on update)
-  .skill-data/
-    lark-push/
-      config.env                     # durable config (kept on update)
-```
-
-After install:
+1. [`lark-cli`](https://github.com/larksuite/cli) installed and authenticated
+2. A Feishu/Lark bot (or user identity) that can post to your target chat
+3. Target chat id (`oc_xxx`)
 
 ```bash
-# Typical global symlink install
+LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
+  lark-cli auth status --json --verify
+```
+
+## Quick start
+
+```bash
+# 1) One-time config after install (durable, update-safe)
 bash ~/.agents/skills/lark-push/scripts/lark-push init --chat-id oc_xxxxxxxx
 
-# Optional footer / identity
+# Optional identity / footer
 bash ~/.agents/skills/lark-push/scripts/lark-push init \
   --chat-id oc_xxxxxxxx \
   --as bot \
-  --footer "via my bot"
+  --footer "via my bot" \
+  --force
 
-# Shared config when using copy mode across many agents
-bash ~/.agents/skills/lark-push/scripts/lark-push init \
-  --target global \
-  --chat-id oc_xxxxxxxx
+# 2) Preview
+bash ~/.agents/skills/lark-push/scripts/lark-push \
+  --dry-run \
+  --kind code \
+  --title "Code task complete" \
+  --body "Implementation done. Local tests passed."
+
+# 3) Send
+bash ~/.agents/skills/lark-push/scripts/lark-push \
+  --kind code \
+  --title "Code task complete" \
+  --body "Implementation done. Local tests passed."
 ```
+
+## Configuration
+
+### Why not put config only inside the skill package?
+
+`npx skills update` **deletes and re-copies** the skill package directory.  
+Local settings must live outside that package.
+
+### Durable path (recommended)
+
+Config is stored next to the skill install:
+
+```text
+~/.agents/skills/
+  lark-push/                 # skill package (wiped on update)
+  .skill-data/
+    lark-push/
+      config.env             # durable local config (kept on update)
+```
+
+### Install modes
+
+| Mode | Layout | Config |
+| --- | --- | --- |
+| **symlink** (default) | Canonical package at `~/.agents/skills/lark-push/`; agents symlink to it | One durable config serves all agents |
+| **copy** (`--copy`) | Full copy per agent | Per-agent durable config, or `--target global` once |
+
+### Load order (later wins)
+
+1. `~/.config/lark-push/config.env` (legacy)
+2. `~/.agents/skills/.skill-data/lark-push/config.env` (shared global)
+3. `<skills-parent>/.skill-data/lark-push/config.env` (install-local durable)
+4. `<skill-root>/config.local.env` (in-package; wiped by update)
+5. `$LARK_PUSH_CONFIG`
+6. CLI flags
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LARK_PUSH_CHAT_ID` | _(required)_ | Target chat id |
+| `LARK_PUSH_AS` | `bot` | `bot` or `user` |
+| `LARK_PUSH_FOOTER` | `via lark-push` | Card footer caption |
+| `LARK_PUSH_CONFIG` | _(unset)_ | Explicit env file path |
 
 Inspect:
 
@@ -75,43 +130,9 @@ bash ~/.agents/skills/lark-push/scripts/lark-push config-path
 bash ~/.agents/skills/lark-push/scripts/lark-push which-config
 ```
 
-### Load order (later wins)
-
-1. `~/.config/lark-push/config.env` (legacy)
-2. `~/.agents/skills/.skill-data/lark-push/config.env` (shared global)
-3. `<skills-parent>/.skill-data/lark-push/config.env` (install-local durable)
-4. `<skill-root>/config.local.env` (in-package; **wiped by update**)
-5. `$LARK_PUSH_CONFIG`
-6. CLI flags
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `LARK_PUSH_CHAT_ID` | _(required)_ | Target chat id |
-| `LARK_PUSH_AS` | `bot` | `bot` or `user` |
-| `LARK_PUSH_FOOTER` | `via lark-push` | Card footer |
-| `LARK_PUSH_CONFIG` | _(unset)_ | Explicit env file path |
-
-## Prerequisites
-
-1. [lark-cli](https://github.com/larksuite/cli) installed and authenticated
-2. Bot/user allowed to send messages to the target chat
-3. `lark-push init` completed (or env/flags provided)
-
-```bash
-LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
-  lark-cli auth status --json --verify
-```
-
 ## Usage
 
 ```bash
-# Preview
-bash ~/.agents/skills/lark-push/scripts/lark-push \
-  --dry-run \
-  --kind code \
-  --title "Code task complete" \
-  --body "Implementation done. Local tests passed."
-
 # Daily report from stdin
 cat daily.md | bash ~/.agents/skills/lark-push/scripts/lark-push \
   --kind daily \
@@ -123,7 +144,7 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
   --title "Weekly report" \
   --from-file weekly.md
 
-# One-off override
+# One-off chat override
 bash ~/.agents/skills/lark-push/scripts/lark-push \
   --chat-id oc_other \
   --kind notice \
@@ -135,7 +156,7 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 
 | Kind | Use for |
 | --- | --- |
-| `code` | code completion, test result, PR / release status |
+| `code` | code completion, tests, PR / release status |
 | `daily` | daily standup report |
 | `weekly` | weekly report |
 | `release` | deployment or launch note |
@@ -145,30 +166,32 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 
 | Format | Use for |
 | --- | --- |
-| `card` | default; Feishu Card 2.0 interactive card |
+| `card` | default; Feishu Card 2.0 |
 | `markdown` | lightweight markdown post |
 
-## Why not only put config inside the skill folder?
+### CLI options
 
-Because skills install/update does this for the package dir:
+```text
+--kind <code|daily|weekly|release|notice>
+--format <card|markdown>
+--title <text>
+--body <text>
+--from-file <path>
+--chat-id <oc_xxx>
+--as <bot|user>
+--idempotency-key <key>
+--dry-run
+--no-context
+```
 
-1. delete skill directory
-2. copy fresh files from the repo
-
-So in-package `config.env` is convenient for a quick test, but disappears on update.  
-Sibling `.skill-data/` keeps the mental model of “follows this skill install” without being wiped.
-
-`npx skills add` also has **no post-install hook**, so config cannot be written automatically during install.  
-`lark-push init` is the intentional setup step.
-
-## Git post-commit hook (optional)
+## Optional: git post-commit hook
 
 ```bash
 ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
   .git/hooks/post-commit
 ```
 
-Ensure durable config exists first (`lark-push init`).
+Run `lark-push init` first so chat id is available.
 
 ## Agent safety
 
@@ -185,16 +208,68 @@ Use `--dry-run` for previews. Running the helper yourself counts as approval.
 ```text
 skills/
   lark-push/
-    SKILL.md
+    SKILL.md                 # agent skill definition
     config.example.env
     scripts/
-      lark-push
+      lark-push              # main CLI
       git-post-commit-lark-push
     templates/
       daily.md
       weekly.md
+README.md                    # English (default)
+README.zh-CN.md              # Chinese
+LICENSE
 ```
+
+Compatible with `npx skills add <owner/repo>` discovery.
+
+## Development
+
+```bash
+git clone https://github.com/kedoupi/lark-push.git
+cd lark-push
+
+# List discoverable skills from local path
+npx skills add ./ --list
+
+# Install from local checkout
+npx skills add ./ -g --all -y
+
+# Dry-run helper
+bash skills/lark-push/scripts/lark-push \
+  --dry-run \
+  --chat-id oc_example \
+  --kind code \
+  --title "Test" \
+  --body "hello"
+```
+
+See [AGENTS.md](./AGENTS.md) for contributor guidance when editing this repo with coding agents.
+
+## Troubleshooting
+
+```bash
+# Auth
+LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
+  lark-cli auth status --json --verify
+
+# Effective config
+bash ~/.agents/skills/lark-push/scripts/lark-push which-config
+```
+
+If send fails:
+
+1. Confirm durable config exists and chat id is correct
+2. Confirm the bot is in the target group and can send messages
+3. Confirm `lark-cli` scopes cover IM message send
 
 ## License
 
-MIT
+[MIT](./LICENSE)
+
+## Links
+
+- GitHub: https://github.com/kedoupi/lark-push
+- skills.sh: https://skills.sh/kedoupi/lark-push
+- skills CLI: https://github.com/vercel-labs/skills
+- lark-cli: https://github.com/larksuite/cli
