@@ -19,13 +19,15 @@ bash tests/run.sh
 4. Scripts must resolve their own directory with `pwd -P` so symlink installs work.
 5. Keep the default README in **English**; update `README.zh-CN.md` when user-facing docs change.
 6. Prefer bash + `lark-cli`; avoid new runtime dependencies beyond `python3` for Card JSON.
-7. Bump `metadata.version` in `SKILL.md` when behavior changes.
+7. Bump `metadata.version` in `SKILL.md` when behavior changes (docs-only: no bump).
 8. Keep `--dry-run` offline (no `lark-cli` / keychain).
+9. Missing deps should print install hints (`doctor`, `require_lark_cli`).
 
 ## Validation
 
 ```bash
 bash tests/run.sh
+bash skills/lark-push/scripts/lark-push doctor
 bash skills/lark-push/scripts/lark-push \
   --dry-run \
   --chat-id oc_example \

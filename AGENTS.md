@@ -51,13 +51,13 @@ tests/
 ```bash
 bash tests/run.sh
 
-# Environment checklist
+# Environment checklist (install hints when deps missing)
 bash skills/lark-push/scripts/lark-push doctor
 
 # List discoverable skills
 npx skills add ./ --list
 
-# Manual dry-run
+# Manual dry-run (must stay offline: no lark-cli / keychain)
 bash skills/lark-push/scripts/lark-push \
   --dry-run \
   --chat-id oc_example \
@@ -69,8 +69,8 @@ bash skills/lark-push/scripts/lark-push \
 ## Release checklist
 
 1. Update `skills/lark-push/SKILL.md` description triggers if behavior changes
-2. Bump `metadata.version`
-3. Keep README install command accurate (EN + zh-CN)
-4. Run `bash tests/run.sh`
-5. Tag releases when useful (`v0.x.y` / `v1.x.y`)
+2. Bump `metadata.version` when **behavior** changes (docs-only: no bump)
+3. Keep README EN + `README.zh-CN.md` in sync (CLI options, features, install)
+4. Run `bash tests/run.sh` (currently 25 offline checks)
+5. Tag releases when useful (`vX.Y.Z` matching `metadata.version`)
 6. Confirm `npx skills add <owner/repo> --list` shows `lark-push`

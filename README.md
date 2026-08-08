@@ -36,7 +36,7 @@ Typical flow:
 ```text
 Agent finishes work
     → lark-push builds Card 2.0 (title, type, time, repo context, body)
-    → 建国 / your bot posts to the project group
+    → your bot posts to the project group
     → Teammates see progress without asking "is it done?"
 ```
 
@@ -67,6 +67,8 @@ One-off notice after installing and configuring the skill on a machine.
 - One command install for multi-agent environments: `npx skills add kedoupi/lark-push`
 - Card 2.0 interactive messages (default) or lightweight markdown
 - Message kinds: `code` / `daily` / `weekly` / `release` / `notice`
+- `doctor` environment checklist with install hints when deps are missing
+- Offline `--dry-run` (no network / no keychain)
 - Config follows the skill install tree and **survives** `npx skills update`
 - Optional git post-commit hook
 - Built on official [`lark-cli`](https://github.com/larksuite/cli)
@@ -238,6 +240,7 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 ### CLI options
 
 ```text
+doctor [--strict-auth]        # environment checklist + install hints
 --kind <code|daily|weekly|release|notice>
 --format <card|markdown>
 --title <text>
@@ -245,9 +248,8 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 --from-file <path>
 --chat-id <oc_xxx>
 --as <bot|user>
---idempotency-key <key>
---dry-run                   # local preview only
---idempotency-key <key>      # max 50 chars
+--idempotency-key <key>       # max 50 chars
+--dry-run                     # local preview only
 --no-context
 ```
 

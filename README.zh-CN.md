@@ -36,7 +36,7 @@
 ```text
 Agent 完成工作
     → lark-push 组装 Card 2.0（标题、类型、时间、仓库上下文、正文）
-    → 建国 / 你的机器人推到项目群
+    → 你的机器人推到项目群
     → 同事不用再问「做完了吗」
 ```
 
@@ -67,6 +67,8 @@ Agent 完成工作
 - 一条命令多 Agent 安装：`npx skills add kedoupi/lark-push`
 - 默认 Card 2.0 交互卡片，也支持轻量 markdown
 - 消息类型：`code` / `daily` / `weekly` / `release` / `notice`
+- `doctor` 环境自检，缺依赖时给出安装提示
+- 离线 `--dry-run`（不访问网络 / 不碰钥匙串）
 - 配置跟随安装目录，且 **`npx skills update` 不会冲掉**
 - 可选 git post-commit 钩子
 - 基于官方 [`lark-cli`](https://github.com/larksuite/cli)
@@ -238,6 +240,7 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 ### CLI 参数
 
 ```text
+doctor [--strict-auth]        # 环境自检 + 安装提示
 --kind <code|daily|weekly|release|notice>
 --format <card|markdown>
 --title <text>
@@ -245,9 +248,8 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 --from-file <path>
 --chat-id <oc_xxx>
 --as <bot|user>
---idempotency-key <key>
---dry-run                   # local preview only
---idempotency-key <key>      # max 50 chars
+--idempotency-key <key>       # 最长 50 字符
+--dry-run                     # 仅本地预览
 --no-context
 ```
 
