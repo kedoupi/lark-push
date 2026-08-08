@@ -232,11 +232,14 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 --chat-id <oc_xxx>
 --as <bot|user>
 --idempotency-key <key>
---dry-run
+--dry-run                   # local preview only
+--idempotency-key <key>      # max 50 chars
 --no-context
 ```
 
 ## Optional: git post-commit hook
+
+Prefer a **symlink** (not a copy) so the hook resolves the helper correctly:
 
 ```bash
 ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
@@ -244,6 +247,12 @@ ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
 ```
 
 Run `lark-push init` first so chat id is available.
+
+Disable without removing the hook:
+
+```bash
+export LARK_PUSH_GIT_HOOK=0
+```
 
 ## Agent safety
 
@@ -253,7 +262,7 @@ Messages are visible in the group. Agents should confirm:
 - message content
 - sending identity (`bot` / `user`)
 
-Use `--dry-run` for previews. Running the helper yourself counts as approval.
+Use `--dry-run` for local previews (no network, no keychain). Running the helper yourself counts as approval.
 
 ## Repository layout
 
@@ -264,10 +273,13 @@ skills/
     config.example.env
     scripts/
       lark-push              # main CLI
+      build_card.py          # Card 2.0 JSON builder
       git-post-commit-lark-push
     templates/
       daily.md
       weekly.md
+tests/
+  run.sh
 docs/
   screenshots/               # Feishu card screenshots used in README
 README.md                    # English (default)
@@ -283,19 +295,22 @@ Compatible with `npx skills add <owner/repo>` discovery.
 git clone https://github.com/kedoupi/lark-push.git
 cd lark-push
 
+# Offline self-test (no keychain / network)
+bash tests/run.sh
+
 # List discoverable skills from local path
 npx skills add ./ --list
 
 # Install from local checkout
 npx skills add ./ -g --all -y
 
-# Dry-run helper
+# Dry-run helper (local preview only)
 bash skills/lark-push/scripts/lark-push \
   --dry-run \
   --chat-id oc_example \
   --kind code \
   --title "Test" \
-  --body "hello"
+  --body "- hello"
 ```
 
 See [AGENTS.md](./AGENTS.md) for contributor guidance when editing this repo with coding agents.

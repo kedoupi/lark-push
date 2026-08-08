@@ -1,7 +1,44 @@
 #!/usr/bin/env bash
+# Optional git post-commit hook: notify the configured Lark chat after a local commit.
+#
+# Install (prefer symlink so SCRIPT_DIR resolves into the skill package):
+#   ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
+#     .git/hooks/post-commit
+#
+# Disable without removing the hook:
+#   export LARK_PUSH_GIT_HOOK=0
+#
+# This is fire-and-forget: it never blocks the commit on network/auth failures.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "${LARK_PUSH_GIT_HOOK:-1}" == "0" || "${LARK_PUSH_GIT_HOOK:-1}" == "false" ]]; then
+  exit 0
+fi
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+
+resolve_lark_push() {
+  local candidate
+  for candidate in \
+    "${SCRIPT_DIR}/lark-push" \
+    "${HOME}/.agents/skills/lark-push/scripts/lark-push" \
+    "${HOME}/.claude/skills/lark-push/scripts/lark-push" \
+    "${HOME}/.codex/skills/lark-push/scripts/lark-push" \
+    "${HOME}/.grok/skills/lark-push/scripts/lark-push"
+  do
+    if [[ -x "$candidate" ]]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+LARK_PUSH_BIN="$(resolve_lark_push || true)"
+if [[ -z "${LARK_PUSH_BIN}" ]]; then
+  echo "lark-push: post-commit hook could not find lark-push script (non-fatal)" >&2
+  exit 0
+fi
 
 COMMIT="$(git log -1 --pretty=format:'%h %s')"
 AUTHOR="$(git log -1 --pretty=format:'%an')"
@@ -14,7 +51,14 @@ Branch: ${BRANCH:-unknown}
 Commit: ${COMMIT}
 Author: ${AUTHOR}"
 
-"${SCRIPT_DIR}/lark-push" \
-  --kind code \
-  --title "Commit pushed" \
-  --body "$BODY"
+# Fire-and-forget: never block the commit, never show noise on success.
+(
+  set +e
+  if ! "${LARK_PUSH_BIN}" \
+    --kind code \
+    --title "Local commit" \
+    --body "$BODY" >/dev/null 2>&1; then
+    echo "lark-push: failed to send commit notification (non-fatal)" >&2
+  fi
+) &
+disown 2>/dev/null || true

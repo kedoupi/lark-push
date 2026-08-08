@@ -232,11 +232,14 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 --chat-id <oc_xxx>
 --as <bot|user>
 --idempotency-key <key>
---dry-run
+--dry-run                   # local preview only
+--idempotency-key <key>      # max 50 chars
 --no-context
 ```
 
 ## 可选：git post-commit 钩子
+
+请用 **软链接**（不要复制文件），以便钩子能解析到 skill 脚本：
 
 ```bash
 ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
@@ -244,6 +247,12 @@ ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
 ```
 
 请先执行 `lark-push init`。
+
+临时关闭（无需删除钩子）：
+
+```bash
+export LARK_PUSH_GIT_HOOK=0
+```
 
 ## Agent 安全约定
 
@@ -253,7 +262,7 @@ ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
 - 消息内容
 - 发送身份（`bot` / `user`）
 
-预览用 `--dry-run`。用户直接执行脚本视为已授权。
+预览用 `--dry-run`（仅本地，不调网络/钥匙串）。用户直接执行脚本视为已授权。
 
 ## 仓库结构
 
@@ -264,10 +273,13 @@ skills/
     config.example.env
     scripts/
       lark-push              # 主 CLI
+      build_card.py          # Card 2.0 JSON 构建
       git-post-commit-lark-push
     templates/
       daily.md
       weekly.md
+tests/
+  run.sh
 docs/
   screenshots/               # README 使用的飞书卡片截图
 README.md                    # 英文（默认）
@@ -283,19 +295,22 @@ LICENSE
 git clone https://github.com/kedoupi/lark-push.git
 cd lark-push
 
+# 离线自测（不碰钥匙串 / 网络）
+bash tests/run.sh
+
 # 从本地路径列出 skill
 npx skills add ./ --list
 
 # 从本地检出安装
 npx skills add ./ -g --all -y
 
-# dry-run
+# dry-run（仅本地预览）
 bash skills/lark-push/scripts/lark-push \
   --dry-run \
   --chat-id oc_example \
   --kind code \
   --title "Test" \
-  --body "hello"
+  --body "- hello"
 ```
 
 用 coding agent 改本仓库时见 [AGENTS.md](./AGENTS.md)。

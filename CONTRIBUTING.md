@@ -8,6 +8,7 @@ Thanks for your interest in improving `lark-push`.
 git clone https://github.com/kedoupi/lark-push.git
 cd lark-push
 npx skills add ./ --list
+bash tests/run.sh
 ```
 
 ## Guidelines
@@ -18,17 +19,19 @@ npx skills add ./ --list
 4. Scripts must resolve their own directory with `pwd -P` so symlink installs work.
 5. Keep the default README in **English**; update `README.zh-CN.md` when user-facing docs change.
 6. Prefer bash + `lark-cli`; avoid new runtime dependencies beyond `python3` for Card JSON.
+7. Bump `metadata.version` in `SKILL.md` when behavior changes.
+8. Keep `--dry-run` offline (no `lark-cli` / keychain).
 
 ## Validation
 
 ```bash
-bash skills/lark-push/scripts/lark-push init --chat-id oc_example --force
-bash skills/lark-push/scripts/lark-push which-config
+bash tests/run.sh
 bash skills/lark-push/scripts/lark-push \
   --dry-run \
+  --chat-id oc_example \
   --kind code \
   --title "Test" \
-  --body "hello"
+  --body "- hello"
 ```
 
 ## Pull requests

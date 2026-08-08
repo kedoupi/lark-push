@@ -17,9 +17,14 @@ npx skills add kedoupi/lark-push
 ```text
 skills/
   lark-push/           # skill package (discovered by skills CLI)
-    SKILL.md           # required skill definition
-    scripts/           # executable helpers
+    SKILL.md           # required skill definition (version source of truth)
+    scripts/
+      lark-push        # main CLI
+      build_card.py    # Card 2.0 JSON builder
+      git-post-commit-lark-push
     templates/         # optional body templates
+tests/
+  run.sh               # offline self-test (no keychain / network)
 ```
 
 ## Editing rules
@@ -29,6 +34,9 @@ skills/
 - Require `LARK_PUSH_CHAT_ID` or `--chat-id` for real sends.
 - Scripts must resolve their own directory and work after install to any agent path.
 - Prefer bash + `lark-cli`; avoid extra runtime dependencies beyond `python3` for JSON card build.
+- Bump `metadata.version` in `SKILL.md` when behavior changes (`--version` reads it).
+- `--dry-run` must stay **local** (no `lark-cli` call).
+- CLI values may start with `-` (markdown lists); do not reject `-*` as “missing”.
 
 ## Config design
 
@@ -40,22 +48,25 @@ skills/
 ## Local validation
 
 ```bash
+bash tests/run.sh
+
 # List discoverable skills
 npx skills add ./ --list
 
-# Init durable config next to a simulated install tree, then dry-run
-bash skills/lark-push/scripts/lark-push init --chat-id oc_example --force
-bash skills/lark-push/scripts/lark-push which-config
+# Manual dry-run
 bash skills/lark-push/scripts/lark-push \
   --dry-run \
+  --chat-id oc_example \
   --kind code \
   --title "Test" \
-  --body "hello"
+  --body "- hello"
 ```
 
 ## Release checklist
 
 1. Update `skills/lark-push/SKILL.md` description triggers if behavior changes
-2. Keep README install command accurate
-3. Tag releases when useful (`v0.x.y`)
-4. Confirm `npx skills add <owner/repo> --list` shows `lark-push`
+2. Bump `metadata.version`
+3. Keep README install command accurate (EN + zh-CN)
+4. Run `bash tests/run.sh`
+5. Tag releases when useful (`v0.x.y` / `v1.x.y`)
+6. Confirm `npx skills add <owner/repo> --list` shows `lark-push`
