@@ -37,6 +37,7 @@ tests/
 - Bump `metadata.version` in `SKILL.md` when behavior changes (`--version` reads it).
 - `--dry-run` must stay **local** (no `lark-cli` call).
 - CLI values may start with `-` (markdown lists); do not reject `-*` as “missing”.
+- Missing deps must print install hints (`doctor`, `require_lark_cli`, Node/npm guidance).
 
 ## Config design
 
@@ -49,6 +50,9 @@ tests/
 
 ```bash
 bash tests/run.sh
+
+# Environment checklist
+bash skills/lark-push/scripts/lark-push doctor
 
 # List discoverable skills
 npx skills add ./ --list

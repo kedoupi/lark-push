@@ -3,7 +3,7 @@ name: lark-push
 description: Use when the user asks to send Feishu or Lark push notifications, code completion notices, daily reports, weekly reports, release summaries, or progress updates to a configured group chat.
 metadata:
   author: kedoupi
-  version: "1.2.0"
+  version: "1.3.0"
   requires:
     bins: ["lark-cli"]
 ---
@@ -12,11 +12,49 @@ metadata:
 
 Send concise Feishu / Lark messages through `lark-cli`. Default output is a Card 2.0 interactive card; use `--format markdown` for plain formatted text.
 
-## Prerequisites
+## Prerequisites (agents: check these first)
+
+If anything is missing, **tell the user how to install it** — do not assume Node or `lark-cli` exist.
+
+Run the built-in checklist:
 
 ```bash
+bash <skill-dir>/scripts/lark-push doctor
+```
+
+| Need | Why | If missing |
+| --- | --- | --- |
+| **Node.js + npm** | `npx skills add …`; typical way to install `lark-cli` | Install LTS from https://nodejs.org/ or `brew install node` |
+| **lark-cli** | Actually send messages to Feishu/Lark | `npm install -g @larksuite/cli` then `lark-cli config init` / `auth status` |
+| **python3** | Default Card 2.0 (`--format card`) | `brew install python3`, or use `--format markdown` |
+| **Skill config** | Target chat id | `bash <skill-dir>/scripts/lark-push init --chat-id oc_xxx` |
+
+Suggested order for a new machine:
+
+```bash
+# 1) Node (if needed)
+#    https://nodejs.org/  or  brew install node
+
+# 2) Install this skill
+npx skills add kedoupi/lark-push -g --all
+
+# 3) Feishu CLI
+npm install -g @larksuite/cli
+lark-cli config init --help
 LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
   lark-cli auth status --json --verify
+
+# 4) Skill chat config
+bash <skill-dir>/scripts/lark-push init --chat-id oc_xxxxxxxx
+
+# 5) Verify
+bash <skill-dir>/scripts/lark-push doctor
+```
+
+On macOS, if `lark-cli` reports **keychain access blocked** inside an Agent, run once in **Terminal.app**:
+
+```bash
+lark-cli config keychain-downgrade
 ```
 
 ## Locating the helper
@@ -47,6 +85,7 @@ See the [online docs](https://github.com/kedoupi/lark-push#readme) for the full 
 Inspect:
 
 ```bash
+bash <skill-dir>/scripts/lark-push doctor
 bash <skill-dir>/scripts/lark-push config-path
 bash <skill-dir>/scripts/lark-push which-config
 ```
@@ -65,6 +104,9 @@ For previews, use `--dry-run` (local only — does **not** call `lark-cli` or to
 ## Usage
 
 ```bash
+# Environment check (print install hints if something is missing)
+bash <skill-dir>/scripts/lark-push doctor
+
 # Preview (local; no network / no keychain)
 bash <skill-dir>/scripts/lark-push --dry-run --kind code --title "Task done" --body "Implementation finished."
 
@@ -119,6 +161,7 @@ Daily / weekly templates: `templates/daily.md`, `templates/weekly.md`.
 ## Key CLI options
 
 ```text
+doctor [--strict-auth]        # environment checklist + install hints
 --kind <code|daily|weekly|release|notice>
 --format <card|markdown>
 --title <text>
@@ -150,11 +193,16 @@ export LARK_PUSH_GIT_HOOK=0
 
 ## Troubleshooting
 
+```bash
+bash <skill-dir>/scripts/lark-push doctor
+```
+
 If send fails:
 
-1. Confirm durable config exists and chat id is correct: `bash <skill-dir>/scripts/lark-push which-config`
-2. Confirm the bot is in the target group and can send messages
-3. Confirm `lark-cli` scopes cover IM message send
+1. Run `doctor` and fix any `[FAIL]` lines (Node, lark-cli, python3, chat id)
+2. Confirm durable config: `bash <skill-dir>/scripts/lark-push which-config`
+3. Confirm the bot is in the target group and can send messages
+4. Confirm `lark-cli` auth / scopes:
 
 ```bash
 LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \

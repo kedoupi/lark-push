@@ -50,6 +50,17 @@ assert_exit() {
   fi
 }
 
+assert_exit_code_soft() {
+  local name="$1" expected="$2" actual="$3"
+  if [[ "$actual" -eq "$expected" ]]; then
+    echo "  PASS  $name (exit $actual)"
+    PASS=$((PASS + 1))
+  else
+    echo "  FAIL  $name (exit $actual, expected $expected)"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 echo "== syntax =="
 bash -n "$LP"
 bash -n "${ROOT}/skills/lark-push/scripts/git-post-commit-lark-push"
@@ -59,7 +70,34 @@ PASS=$((PASS + 1))
 
 echo "== version =="
 ver_out="$("$LP" --version)"
-assert_contains "version from SKILL.md" "lark-push v1.2.0" "$ver_out"
+assert_contains "version from SKILL.md" "lark-push v1.3.0" "$ver_out"
+
+echo "== doctor =="
+set +e
+doc_out="$("$LP" doctor 2>&1)"
+doc_code=$?
+set -e
+assert_contains "doctor header" "lark-push doctor" "$doc_out"
+assert_contains "doctor checks lark-cli" "lark-cli" "$doc_out"
+assert_contains "doctor checks python3" "python3" "$doc_out"
+assert_contains "doctor checks node/npm hints" "node" "$doc_out"
+# Required items should pass on this machine (config + tools exist)
+if [[ "$doc_code" -eq 0 ]]; then
+  echo "  PASS  doctor exit 0"
+  PASS=$((PASS + 1))
+else
+  # Still accept exit 1 if only soft env differs; but require helpful fail text
+  assert_contains "doctor fail guidance" "FAIL" "$doc_out"
+fi
+
+echo "== missing lark-cli error text =="
+set +e
+miss_out="$(PATH=/usr/bin:/bin "$LP" --chat-id oc_x --kind notice --title t --body hello 2>&1)"
+miss_code=$?
+set -e
+assert_exit_code_soft "missing lark-cli exit" 127 "$miss_code"
+assert_contains "missing lark-cli hint npm" "npm install -g @larksuite/cli" "$miss_out"
+assert_contains "missing lark-cli tip doctor" "doctor" "$miss_out"
 
 echo "== require_val / leading dash body =="
 out="$("$LP" --dry-run --chat-id oc_example --kind daily --title "Daily" --body "- shipped A

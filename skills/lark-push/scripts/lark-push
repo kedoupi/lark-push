@@ -116,6 +116,228 @@ make_idempotency_key() {
 }
 
 # ---------------------------------------------------------------------------
+# Dependency / install guidance
+# ---------------------------------------------------------------------------
+
+print_install_node() {
+  cat <<'EOF' >&2
+Node.js / npm is missing (needed for: npx skills add, and usually for installing lark-cli).
+
+Install Node.js LTS, then re-open your terminal:
+
+  # macOS (Homebrew)
+  brew install node
+
+  # Or official installer:
+  #   https://nodejs.org/
+
+Verify:
+  node -v
+  npm -v
+  command -v npx
+EOF
+}
+
+print_install_lark_cli() {
+  cat <<'EOF' >&2
+lark-cli is missing from PATH (required to send Feishu / Lark messages).
+
+1) If you do not have Node.js / npm yet, install Node LTS first:
+     https://nodejs.org/
+     # macOS: brew install node
+
+2) Install the official CLI:
+     npm install -g @larksuite/cli
+
+3) Configure & auth (use a real interactive Terminal.app on macOS if keychain fails):
+     lark-cli config init --help
+     lark-cli auth status --json --verify
+     # User identity (optional for bot-only sends):
+     #   lark-cli auth login --domain im --json
+     # Agent / sandbox on macOS after interactive setup:
+     #   lark-cli config keychain-downgrade
+
+Docs: https://github.com/larksuite/cli
+EOF
+}
+
+print_install_python3() {
+  cat <<'EOF' >&2
+python3 is missing (required for default --format card Card 2.0 JSON).
+
+Install python3, or send with plain markdown instead:
+
+  # macOS
+  brew install python3
+
+  # Or use markdown format (no python3):
+  bash scripts/lark-push --format markdown --kind notice --title "..." --body "..."
+EOF
+}
+
+require_lark_cli() {
+  if command -v lark-cli >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "Error: lark-cli not found in PATH." >&2
+  echo >&2
+  print_install_lark_cli
+  echo >&2
+  echo "Tip: run  bash ${SCRIPT_DIR}/lark-push doctor  for a full checklist." >&2
+  exit 127
+}
+
+require_python3_for_card() {
+  if command -v python3 >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "Error: python3 is required to build Card 2.0 JSON." >&2
+  echo >&2
+  print_install_python3
+  echo >&2
+  echo "Tip: run  bash ${SCRIPT_DIR}/lark-push doctor  for a full checklist." >&2
+  exit 127
+}
+
+# doctor: offline-friendly checks. Auth verify is soft (may fail in sandboxes).
+cmd_doctor() {
+  local strict_auth=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --strict-auth) strict_auth=1; shift ;;
+      -h|--help)
+        cat <<'EOF'
+Usage: lark-push doctor [--strict-auth]
+
+Check environment for sending with this skill:
+  - Node.js / npm / npx  (install skill via npx; install lark-cli via npm)
+  - lark-cli             (required to send)
+  - python3              (required for default card format)
+  - durable config       (chat id)
+  - optional auth probe  (soft unless --strict-auth)
+
+Exit 0 if required items pass; exit 1 if any required check fails.
+EOF
+        return 0
+        ;;
+      *)
+        echo "Unknown doctor option: $1" >&2
+        return 2
+        ;;
+    esac
+  done
+
+  local fail=0
+  local warn=0
+  local ok=0
+
+  pass() { echo "  [ok]   $1"; ok=$((ok + 1)); }
+  soft() { echo "  [warn] $1"; warn=$((warn + 1)); }
+  hard() { echo "  [FAIL] $1"; fail=$((fail + 1)); }
+
+  echo "lark-push doctor  v$(skill_version)"
+  echo "Skill root: ${SKILL_ROOT}"
+  echo
+
+  echo "== Toolchain (install skill / CLI) =="
+  if command -v node >/dev/null 2>&1; then
+    pass "node  $(node -v 2>/dev/null | tr -d '\n')"
+  else
+    soft "node not found — needed for npx skills add and typical lark-cli install"
+  fi
+  if command -v npm >/dev/null 2>&1; then
+    pass "npm   $(npm -v 2>/dev/null | tr -d '\n')"
+  else
+    soft "npm not found — install Node.js LTS from https://nodejs.org/ or: brew install node"
+  fi
+  if command -v npx >/dev/null 2>&1; then
+    pass "npx   available"
+  else
+    soft "npx not found — cannot run: npx skills add kedoupi/lark-push"
+  fi
+  if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+    echo
+    print_install_node
+  fi
+
+  echo
+  echo "== Runtime (send messages) =="
+  if command -v lark-cli >/dev/null 2>&1; then
+    local lc_ver
+    lc_ver="$(lark-cli --version 2>/dev/null | head -n1 || true)"
+    pass "lark-cli  ${lc_ver:-found}"
+  else
+    hard "lark-cli not found in PATH (required to send)"
+    echo
+    print_install_lark_cli
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    pass "python3  $(python3 --version 2>/dev/null | tr -d '\n')"
+  else
+    hard "python3 not found (required for default --format card)"
+    echo
+    print_install_python3
+  fi
+
+  if [[ -f "$SKILL_ROOT/scripts/build_card.py" ]]; then
+    pass "build_card.py present"
+  else
+    hard "missing $SKILL_ROOT/scripts/build_card.py (reinstall skill)"
+  fi
+
+  echo
+  echo "== Config =="
+  load_all_configs
+  print_config_paths
+  if [[ -n "${LARK_PUSH_CHAT_ID:-}" ]]; then
+    pass "LARK_PUSH_CHAT_ID is set"
+  else
+    hard "LARK_PUSH_CHAT_ID unset — run: bash ${SCRIPT_DIR}/lark-push init --chat-id oc_xxx"
+  fi
+
+  echo
+  echo "== Auth (optional probe) =="
+  if ! command -v lark-cli >/dev/null 2>&1; then
+    soft "skip auth — install lark-cli first"
+  else
+    local auth_out auth_code
+    set +e
+    auth_out="$(LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
+      lark-cli auth status --json --verify 2>&1)"
+    auth_code=$?
+    set -e
+    if [[ "$auth_code" -eq 0 ]] && [[ "$auth_out" == *'"verified": true'* || "$auth_out" == *'"verified":true'* || "$auth_out" == *'"status": "ready"'* || "$auth_out" == *'"status":"ready"'* ]]; then
+      pass "lark-cli auth status --verify looks healthy"
+    elif [[ "$auth_out" == *'keychain'* ]]; then
+      soft "lark-cli auth blocked on keychain (common in Agent sandboxes)"
+      echo "         Fix in interactive Terminal.app:" >&2
+      echo "           lark-cli config keychain-downgrade" >&2
+      echo "           lark-cli auth status --json --verify" >&2
+      if [[ "$strict_auth" -eq 1 ]]; then
+        hard "strict-auth: keychain/auth not usable in this environment"
+      fi
+    else
+      soft "lark-cli auth not ready (exit ${auth_code})"
+      echo "         Run: lark-cli config init --help" >&2
+      echo "              lark-cli auth status --json --verify" >&2
+      if [[ "$strict_auth" -eq 1 ]]; then
+        hard "strict-auth: auth probe failed"
+      fi
+    fi
+  fi
+
+  echo
+  echo "Summary: ${ok} ok, ${warn} warn, ${fail} fail"
+  if [[ "$fail" -gt 0 ]]; then
+    echo "Required checks failed. Fix [FAIL] items above, then re-run doctor."
+    return 1
+  fi
+  echo "Required checks passed. You can send with lark-push (bot identity is typical)."
+  return 0
+}
+
+# ---------------------------------------------------------------------------
 # init
 # ---------------------------------------------------------------------------
 
@@ -255,6 +477,12 @@ if [[ "${1:-}" == "init" ]]; then
   exit $?
 fi
 
+if [[ "${1:-}" == "doctor" ]]; then
+  shift
+  cmd_doctor "$@"
+  exit $?
+fi
+
 if [[ "${1:-}" == "config-path" || "${1:-}" == "paths" ]]; then
   print_config_paths
   exit 0
@@ -295,6 +523,7 @@ usage() {
 Usage:
   lark-push [options]
   lark-push init [init-options]
+  lark-push doctor [--strict-auth]
   lark-push config-path
   lark-push which-config
   lark-push version
@@ -313,18 +542,20 @@ Send Options:
   --version                    Print version
   -h, --help
 
+Setup (first time):
+  1) Node.js LTS (for npx / npm):  https://nodejs.org/   or  brew install node
+  2) Install this skill:           npx skills add kedoupi/lark-push -g --all
+  3) Install Feishu CLI:           npm install -g @larksuite/cli
+  4) Configure CLI + auth:         lark-cli config init / auth status
+  5) Skill config:                 bash scripts/lark-push init --chat-id oc_xxx
+  6) Check everything:             bash scripts/lark-push doctor
+
 Config (follows skill install location):
   Preferred durable file (survives skills update):
     <skills-parent>/.skill-data/lark-push/config.env
 
-  After install:
-    bash scripts/lark-push init --chat-id oc_xxx
-
-  Inspect:
-    bash scripts/lark-push config-path
-    bash scripts/lark-push which-config
-
 Examples:
+  lark-push doctor
   lark-push --dry-run --kind code --title "Code task complete" --body "Tests passed."
   lark-push --dry-run --kind daily --title "Daily" --body "- shipped A
 - blocked on B"
@@ -502,12 +733,10 @@ fi
 
 CARD_JSON=""
 if [[ "$FORMAT" == "card" ]]; then
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "python3 is required to build Card 2.0 JSON." >&2
-    exit 127
-  fi
+  require_python3_for_card
   if [[ ! -f "$SKILL_ROOT/scripts/build_card.py" ]]; then
     echo "Missing card builder: $SKILL_ROOT/scripts/build_card.py" >&2
+    echo "Reinstall the skill: npx skills add kedoupi/lark-push -g --all" >&2
     exit 127
   fi
 
@@ -552,10 +781,7 @@ EOF
   exit 0
 fi
 
-if ! command -v lark-cli >/dev/null 2>&1; then
-  echo "lark-cli not found in PATH. Install and authenticate first." >&2
-  exit 127
-fi
+require_lark_cli
 
 if [[ "$FORMAT" == "card" ]]; then
   CMD=(lark-cli im +messages-send --as "$AS_IDENTITY" --chat-id "$CHAT_ID" --msg-type interactive --content "$CARD_JSON" --idempotency-key "$IDEMPOTENCY_KEY" --json)

@@ -97,18 +97,32 @@ npx skills add kedoupi/lark-push --list
 
 ## 前置条件
 
-1. 已安装并登录 [`lark-cli`](https://github.com/larksuite/cli)
-2. 机器人（或用户身份）有目标群发言权限
-3. 目标会话 ID（`oc_xxx`）
+| 需要 | 用途 | 如何安装 |
+| --- | --- | --- |
+| **Node.js + npm** | `npx skills add`；通常也用 npm 装 `lark-cli` | [nodejs.org](https://nodejs.org/) LTS 或 `brew install node` |
+| **lark-cli** | 真正向飞书/Lark 发消息 | `npm install -g @larksuite/cli` — [文档](https://github.com/larksuite/cli) |
+| **python3** | 默认 Card 2.0 卡片 | macOS: `brew install python3`（或改用 `--format markdown`） |
+| **会话 ID** | 发到哪个群 | 飞书群的 `oc_xxx` |
+
+工具就绪后：
 
 ```bash
+# 飞书 CLI 鉴权 / 应用配置
 LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
   lark-cli auth status --json --verify
+
+# 一键体检（缺什么会打印安装提示）
+bash ~/.agents/skills/lark-push/scripts/lark-push doctor
 ```
+
+若没有 `npx`，请先安装 Node——本 skill **不自带** Node 或 `lark-cli`。
 
 ## 快速开始
 
 ```bash
+# 0) 环境体检（安装后建议先跑）
+bash ~/.agents/skills/lark-push/scripts/lark-push doctor
+
 # 1) 安装后一次性配置（持久、update 安全）
 bash ~/.agents/skills/lark-push/scripts/lark-push init --chat-id oc_xxxxxxxx
 
@@ -318,6 +332,9 @@ bash skills/lark-push/scripts/lark-push \
 ## 排查
 
 ```bash
+# 环境体检 + 安装提示
+bash ~/.agents/skills/lark-push/scripts/lark-push doctor
+
 # 鉴权
 LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
   lark-cli auth status --json --verify
