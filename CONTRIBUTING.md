@@ -5,7 +5,7 @@ Thanks for your interest in improving `lark-push`.
 ## Development setup
 
 ```bash
-git clone https://github.com/kedoupi/lark-push.git
+git clone https://github.com/kedoupi/lark-push-skill.git
 cd lark-push
 npx skills add ./ --list
 bash tests/run.sh

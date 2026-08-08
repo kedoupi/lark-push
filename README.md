@@ -7,8 +7,8 @@ Push concise **Feishu / Lark** notifications from coding agents.
 Works with Claude Code, Codex, Cursor, OpenCode, Grok Build, and [70+ agents](https://github.com/vercel-labs/skills#supported-agents) via the [skills CLI](https://skills.sh/).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![skills.sh](https://skills.sh/b/kedoupi/lark-push)](https://skills.sh/kedoupi/lark-push)
-[![GitHub](https://img.shields.io/badge/GitHub-kedoupi%2Flark--push-181717?logo=github)](https://github.com/kedoupi/lark-push)
+[![skills.sh](https://skills.sh/b/kedoupi/lark-push-skill)](https://skills.sh/kedoupi/lark-push-skill)
+[![GitHub](https://img.shields.io/badge/GitHub-kedoupi%2Flark--push--skill-181717?logo=github)](https://github.com/kedoupi/lark-push-skill)
 
 <p align="center">
   <img src="docs/screenshots/daily-project.png" alt="Project daily report card in Feishu" width="420" />
@@ -64,7 +64,7 @@ One-off notice after installing and configuring the skill on a machine.
 
 ## Features
 
-- One command install for multi-agent environments: `npx skills add kedoupi/lark-push`
+- One command install for multi-agent environments: `npx skills add kedoupi/lark-push-skill`
 - Card 2.0 interactive messages (default) or lightweight markdown
 - Message kinds: `code` / `daily` / `weekly` / `release` / `notice`
 - `doctor` environment checklist with install hints when deps are missing
@@ -77,25 +77,25 @@ One-off notice after installing and configuring the skill on a machine.
 
 ```bash
 # Global (recommended): install for all supported agents
-npx skills add kedoupi/lark-push -g --all
+npx skills add kedoupi/lark-push-skill -g --all
 
 # Project-level
-npx skills add kedoupi/lark-push --all
+npx skills add kedoupi/lark-push-skill --all
 
 # Specific agents only
-npx skills add kedoupi/lark-push -g -a claude-code -a codex -a cursor -y
+npx skills add kedoupi/lark-push-skill -g -a claude-code -a codex -a cursor -y
 
 # Copy mode instead of symlink
-npx skills add kedoupi/lark-push -g --all --copy
+npx skills add kedoupi/lark-push-skill -g --all --copy
 ```
 
 List skills without installing:
 
 ```bash
-npx skills add kedoupi/lark-push --list
+npx skills add kedoupi/lark-push-skill --list
 ```
 
-Browse on [skills.sh](https://skills.sh/kedoupi/lark-push).
+Browse on [skills.sh](https://skills.sh/kedoupi/lark-push-skill).
 
 ## Prerequisites
 
@@ -308,7 +308,7 @@ Compatible with `npx skills add <owner/repo>` discovery.
 ## Development
 
 ```bash
-git clone https://github.com/kedoupi/lark-push.git
+git clone https://github.com/kedoupi/lark-push-skill.git
 cd lark-push
 
 # Offline self-test (no keychain / network)
@@ -357,7 +357,7 @@ If send fails:
 
 ## Links
 
-- GitHub: https://github.com/kedoupi/lark-push
-- skills.sh: https://skills.sh/kedoupi/lark-push
+- GitHub: https://github.com/kedoupi/lark-push-skill
+- skills.sh: https://skills.sh/kedoupi/lark-push-skill
 - skills CLI: https://github.com/vercel-labs/skills
 - lark-cli: https://github.com/larksuite/cli

@@ -7,8 +7,8 @@
 支持 Claude Code、Codex、Cursor、OpenCode、Grok Build 以及 [70+ agents](https://github.com/vercel-labs/skills#supported-agents)，通过 [skills CLI](https://skills.sh/) 安装。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![skills.sh](https://skills.sh/b/kedoupi/lark-push)](https://skills.sh/kedoupi/lark-push)
-[![GitHub](https://img.shields.io/badge/GitHub-kedoupi%2Flark--push-181717?logo=github)](https://github.com/kedoupi/lark-push)
+[![skills.sh](https://skills.sh/b/kedoupi/lark-push-skill)](https://skills.sh/kedoupi/lark-push-skill)
+[![GitHub](https://img.shields.io/badge/GitHub-kedoupi%2Flark--push--skill-181717?logo=github)](https://github.com/kedoupi/lark-push-skill)
 
 <p align="center">
   <img src="docs/screenshots/daily-project.png" alt="飞书群内的项目日报卡片" width="420" />
@@ -64,7 +64,7 @@ Agent 完成工作
 
 ## 功能
 
-- 一条命令多 Agent 安装：`npx skills add kedoupi/lark-push`
+- 一条命令多 Agent 安装：`npx skills add kedoupi/lark-push-skill`
 - 默认 Card 2.0 交互卡片，也支持轻量 markdown
 - 消息类型：`code` / `daily` / `weekly` / `release` / `notice`
 - `doctor` 环境自检，缺依赖时给出安装提示
@@ -77,25 +77,25 @@ Agent 完成工作
 
 ```bash
 # 全局安装到所有支持的 agent（推荐）
-npx skills add kedoupi/lark-push -g --all
+npx skills add kedoupi/lark-push-skill -g --all
 
 # 仅当前项目
-npx skills add kedoupi/lark-push --all
+npx skills add kedoupi/lark-push-skill --all
 
 # 指定 agent
-npx skills add kedoupi/lark-push -g -a claude-code -a codex -a cursor -y
+npx skills add kedoupi/lark-push-skill -g -a claude-code -a codex -a cursor -y
 
 # 使用 copy 模式（不用 symlink）
-npx skills add kedoupi/lark-push -g --all --copy
+npx skills add kedoupi/lark-push-skill -g --all --copy
 ```
 
 只查看仓库内 skill，不安装：
 
 ```bash
-npx skills add kedoupi/lark-push --list
+npx skills add kedoupi/lark-push-skill --list
 ```
 
-在 [skills.sh](https://skills.sh/kedoupi/lark-push) 浏览。
+在 [skills.sh](https://skills.sh/kedoupi/lark-push-skill) 浏览。
 
 ## 前置条件
 
@@ -308,7 +308,7 @@ LICENSE
 ## 本地开发
 
 ```bash
-git clone https://github.com/kedoupi/lark-push.git
+git clone https://github.com/kedoupi/lark-push-skill.git
 cd lark-push
 
 # 离线自测（不碰钥匙串 / 网络）
@@ -357,7 +357,7 @@ bash ~/.agents/skills/lark-push/scripts/lark-push which-config
 
 ## 链接
 
-- GitHub：https://github.com/kedoupi/lark-push
-- skills.sh：https://skills.sh/kedoupi/lark-push
+- GitHub：https://github.com/kedoupi/lark-push-skill
+- skills.sh：https://skills.sh/kedoupi/lark-push-skill
 - skills CLI：https://github.com/vercel-labs/skills
 - lark-cli：https://github.com/larksuite/cli

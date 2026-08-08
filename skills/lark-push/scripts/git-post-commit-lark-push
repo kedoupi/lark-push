@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Optional git post-commit hook: notify the configured Lark chat after a local commit.
 #
-# Install (prefer symlink so SCRIPT_DIR resolves into the skill package):
+# Install (prefer symlink so the hook always runs the latest helper):
 #   ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
 #     .git/hooks/post-commit
+#
+# Note: SCRIPT_DIR resolves to .git/hooks (symlink dir, not the skill package);
+# the helper is found via the known install paths in resolve_lark_push below.
 #
 # Disable without removing the hook:
 #   export LARK_PUSH_GIT_HOOK=0

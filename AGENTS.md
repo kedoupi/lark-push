@@ -12,7 +12,7 @@ This repo publishes one installable agent skill: `lark-push`.
 Users install it with:
 
 ```bash
-npx skills add kedoupi/lark-push
+npx skills add kedoupi/lark-push-skill
 ```
 
 ## Layout

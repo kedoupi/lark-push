@@ -36,7 +36,7 @@ Suggested order for a new machine:
 #    https://nodejs.org/  or  brew install node
 
 # 2) Install this skill
-npx skills add kedoupi/lark-push -g --all
+npx skills add kedoupi/lark-push-skill -g --all
 
 # 3) Feishu CLI
 npm install -g @larksuite/cli
@@ -80,7 +80,7 @@ bash <skill-dir>/scripts/lark-push init --chat-id oc_xxxxxxxx
 ```
 
 Config is stored **outside** the skill package (survives `npx skills update`).
-See the [online docs](https://github.com/kedoupi/lark-push#readme) for the full config layout, load order, and install-mode differences.
+See the [online docs](https://github.com/kedoupi/lark-push-skill#readme) for the full config layout, load order, and install-mode differences.
 
 Inspect:
 
@@ -174,11 +174,13 @@ doctor [--strict-auth]        # environment checklist + install hints
 --no-context
 ```
 
-Full reference: `bash <skill-dir>/scripts/lark-push --help` or see the [online docs](https://github.com/kedoupi/lark-push#readme).
+Full reference: `bash <skill-dir>/scripts/lark-push --help` or see the [online docs](https://github.com/kedoupi/lark-push-skill#readme).
 
 ## Optional: git post-commit hook
 
-Prefer a **symlink** (not a copy) so the hook can find the helper:
+Prefer a **symlink** (not a copy) so the hook always runs the latest helper
+(the hook locates the helper via known install paths under `~/.agents`,
+`~/.claude`, `~/.codex`, `~/.grok`):
 
 ```bash
 ln -sf ~/.agents/skills/lark-push/scripts/git-post-commit-lark-push \
