@@ -1,6 +1,9 @@
 # AGENTS.md
 
-Guidance for AI coding agents working in this repository.
+Guidance for **any** AI coding agent working in this repository
+(Claude Code, Codex, Cursor, Grok Build, …).
+
+This file is the **source of truth**. Optional `CLAUDE.md` only points here.
 
 ## Purpose
 
