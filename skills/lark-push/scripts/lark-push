@@ -7,10 +7,12 @@ SKILL_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
 SKILL_NAME="$(basename -- "$SKILL_ROOT")"
 SKILLS_PARENT="$(dirname -- "$SKILL_ROOT")"
 
-# Durable config lives next to the skill package, not inside it.
+# Recommended brand+XDG config (default for init)
+KEDOUPI_CONFIG_DIR="${HOME}/.config/kedoupi/${SKILL_NAME}"
+KEDOUPI_CONFIG_FILE="${KEDOUPI_CONFIG_DIR}/config.env"
+
+# Legacy: install-adjacent durable (still read; may migrate once)
 # skills CLI reinstall/update wipes the skill directory itself, but keeps siblings.
-#   symlink mode: ~/.agents/skills/lark-push  +  ~/.agents/skills/.skill-data/lark-push/config.env
-#   copy mode:    ~/.claude/skills/lark-push  +  ~/.claude/skills/.skill-data/lark-push/config.env
 DURABLE_CONFIG_DIR="${SKILLS_PARENT}/.skill-data/${SKILL_NAME}"
 DURABLE_CONFIG_FILE="${DURABLE_CONFIG_DIR}/config.env"
 
@@ -74,13 +76,33 @@ load_env_file() {
   fi
 }
 
+# If recommended kedoupi config is missing, copy once from a legacy config file.
+ensure_kedoupi_config() {
+  if [[ -f "$KEDOUPI_CONFIG_FILE" ]]; then
+    return 0
+  fi
+  local src
+  for src in "$DURABLE_CONFIG_FILE" "$GLOBAL_SHARED_CONFIG_FILE" "$XDG_CONFIG_FILE"; do
+    if [[ -f "$src" && -s "$src" ]]; then
+      mkdir -p "$KEDOUPI_CONFIG_DIR"
+      cp "$src" "$KEDOUPI_CONFIG_FILE"
+      chmod 600 "$KEDOUPI_CONFIG_FILE" 2>/dev/null || true
+      echo "lark-push: migrated config → ${KEDOUPI_CONFIG_FILE}" >&2
+      echo "  (from ${src})" >&2
+      return 0
+    fi
+  done
+}
+
 # Least-specific → most-specific. Later files override earlier ones.
 load_all_configs() {
+  ensure_kedoupi_config
   load_env_file "$XDG_CONFIG_FILE"
   load_env_file "$GLOBAL_SHARED_CONFIG_FILE"
   if [[ "$DURABLE_CONFIG_FILE" != "$GLOBAL_SHARED_CONFIG_FILE" ]]; then
     load_env_file "$DURABLE_CONFIG_FILE"
   fi
+  load_env_file "$KEDOUPI_CONFIG_FILE"
   load_env_file "$LOCAL_CONFIG_FILE"
   if [[ -n "${LARK_PUSH_CONFIG:-}" ]]; then
     load_env_file "$LARK_PUSH_CONFIG"
@@ -91,8 +113,9 @@ print_config_paths() {
   cat <<EOF
 Skill root:           ${SKILL_ROOT}
 Version:              $(skill_version)
-Durable config:       ${DURABLE_CONFIG_FILE}$([[ -f "$DURABLE_CONFIG_FILE" ]] && echo "  [exists]" || echo "  [missing]")
-Global shared config: ${GLOBAL_SHARED_CONFIG_FILE}$([[ -f "$GLOBAL_SHARED_CONFIG_FILE" ]] && echo "  [exists]" || echo "  [missing]")
+Kedoupi config:       ${KEDOUPI_CONFIG_FILE}$([[ -f "$KEDOUPI_CONFIG_FILE" ]] && echo "  [exists · recommended]" || echo "  [missing · run: lark-push init]")
+Legacy durable:       ${DURABLE_CONFIG_FILE}$([[ -f "$DURABLE_CONFIG_FILE" ]] && echo "  [exists]" || echo "  [missing]")
+Global shared:        ${GLOBAL_SHARED_CONFIG_FILE}$([[ -f "$GLOBAL_SHARED_CONFIG_FILE" ]] && echo "  [exists]" || echo "  [missing]")
 Local (in skill):     ${LOCAL_CONFIG_FILE}$([[ -f "$LOCAL_CONFIG_FILE" ]] && echo "  [exists · wiped on skills update]" || echo "  [missing]")
 XDG legacy:           ${XDG_CONFIG_FILE}$([[ -f "$XDG_CONFIG_FILE" ]] && echo "  [exists]" || echo "  [missing]")
 Explicit override:    ${LARK_PUSH_CONFIG:-"(unset)"}
@@ -346,7 +369,7 @@ cmd_init() {
   local as_identity="bot"
   local footer="via lark-push"
   local force=0
-  local target="durable" # durable | global | local
+  local target="kedoupi" # kedoupi | durable | global | local
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -379,15 +402,18 @@ cmd_init() {
 Usage:
   lark-push init [options]
 
-Create a local config file next to this skill install (recommended after
-`npx skills add`).
+Write Feishu/Lark push config (survives npx skills update).
+
+Default path (recommended):
+  ~/.config/kedoupi/lark-push/config.env
 
 Options:
   --chat-id <oc_xxx>     Target Feishu/Lark chat id (required unless already set)
   --as <bot|user>        Default: bot
   --footer <text>        Card footer caption (may start with '-')
-  --target <where>       durable | global | local
-                           durable (default): <skills-parent>/.skill-data/lark-push/config.env
+  --target <where>       kedoupi | durable | global | local
+                           kedoupi (default): ~/.config/kedoupi/lark-push/config.env
+                           durable:           <skills-parent>/.skill-data/lark-push/config.env
                            global:            ~/.agents/skills/.skill-data/lark-push/config.env
                            local:             <skill-root>/config.local.env  (wiped by skills update)
   --force                Overwrite existing file
@@ -411,11 +437,12 @@ EOF
 
   local out_file
   case "$target" in
+    kedoupi|default) out_file="$KEDOUPI_CONFIG_FILE" ;;
     durable) out_file="$DURABLE_CONFIG_FILE" ;;
     global) out_file="$GLOBAL_SHARED_CONFIG_FILE" ;;
     local) out_file="$LOCAL_CONFIG_FILE" ;;
     *)
-      echo "Invalid --target: $target (use durable|global|local)" >&2
+      echo "Invalid --target: $target (use kedoupi|durable|global|local)" >&2
       return 2
       ;;
   esac
@@ -449,8 +476,9 @@ EOF
 #   1) ~/.config/lark-push/config.env
 #   2) ~/.agents/skills/.skill-data/lark-push/config.env
 #   3) <skills-parent>/.skill-data/lark-push/config.env
-#   4) <skill-root>/config.local.env
-#   5) \$LARK_PUSH_CONFIG
+#   4) ~/.config/kedoupi/lark-push/config.env   (recommended)
+#   5) <skill-root>/config.local.env
+#   6) \$LARK_PUSH_CONFIG
 #   6) CLI flags (--chat-id, --as, ...)
 
 LARK_PUSH_CHAT_ID=$(printf '%q' "$chat_id")

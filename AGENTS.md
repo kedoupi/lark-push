@@ -19,16 +19,22 @@ npx skills add kedoupi/lark-push-skill
 
 ```text
 skills/
-  lark-push/           # skill package (discovered by skills CLI)
-    SKILL.md           # required skill definition (version source of truth)
+  lark-push/           # installable package (skills CLI)
+    SKILL.md
     scripts/
-      lark-push        # main CLI
-      build_card.py    # Card 2.0 JSON builder
+      lark-push
+      build_card.py
       git-post-commit-lark-push
-    templates/         # optional body templates
+    templates/
+docs/
+  README.md
+  screenshots/         # curated gallery
 tests/
+  README.md
   run.sh               # offline self-test (no keychain / network)
 ```
+
+**docs / tests / artifacts:** guides + gallery under `docs/`; offline CI under `tests/`; generated dumps would go under `artifacts/` (none for this skill yet). Incubator SoT: `schema/skill-repo.md`.
 
 ## Editing rules
 
