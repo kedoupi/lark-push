@@ -51,7 +51,8 @@ tests/
 ## Config design
 
 - Do **not** store secrets only inside the skill package: `npx skills update` wipes that directory.
-- Durable config lives at `<skills-parent>/.skill-data/lark-push/config.env`.
+- Recommended durable config lives at `~/.config/kedoupi/lark-push/config.env`.
+- Legacy `.skill-data/lark-push/config.env` paths remain read/migrate-only.
 - After install users run `bash scripts/lark-push init --chat-id oc_xxx`.
 - `npx skills add` has no post-install hook; init is intentional.
 
