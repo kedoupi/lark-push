@@ -161,35 +161,44 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 ### Why not put config only inside the skill package?
 
 `npx skills update` **deletes and re-copies** the skill package directory.  
-Local settings must live outside that package.
+Local settings must live **outside** that package. Prefer a config file — **do not** put chat ids only in `~/.zshrc`.
 
-### Durable path (recommended)
-
-Config is stored next to the skill install:
+### Recommended path (default for `init`)
 
 ```text
-~/.agents/skills/
-  lark-push/                 # skill package (wiped on update)
-  .skill-data/
-    lark-push/
-      config.env             # durable local config (kept on update)
+~/.config/kedoupi/lark-push/config.env    # chmod 600 · survives skills update
+~/.agents/skills/lark-push/               # package only (wiped on update)
+```
+
+```bash
+bash ~/.agents/skills/lark-push/scripts/lark-push init --chat-id 'oc_YOUR_CHAT_ID'
+# optional: --as bot --footer 'via my bot' --force
+```
+
+Legacy locations still load (and auto-migrate once into kedoupi when missing):
+
+```text
+~/.config/lark-push/config.env
+~/.agents/skills/.skill-data/lark-push/config.env
+<skills-parent>/.skill-data/lark-push/config.env
 ```
 
 ### Install modes
 
 | Mode | Layout | Config |
 | --- | --- | --- |
-| **symlink** (default) | Canonical package at `~/.agents/skills/lark-push/`; agents symlink to it | One durable config serves all agents |
-| **copy** (`--copy`) | Full copy per agent | Per-agent durable config, or `--target global` once |
+| **symlink** (default) | Package at `~/.agents/skills/lark-push/`; agents symlink | One kedoupi config for all agents |
+| **copy** (`--copy`) | Full copy per agent | Same kedoupi file, or `--target global` / `durable` if needed |
 
 ### Load order (later wins)
 
 1. `~/.config/lark-push/config.env` (legacy)
-2. `~/.agents/skills/.skill-data/lark-push/config.env` (shared global)
-3. `<skills-parent>/.skill-data/lark-push/config.env` (install-local durable)
-4. `<skill-root>/config.local.env` (in-package; wiped by update)
-5. `$LARK_PUSH_CONFIG`
-6. CLI flags
+2. `~/.agents/skills/.skill-data/lark-push/config.env` (legacy shared)
+3. `<skills-parent>/.skill-data/lark-push/config.env` (legacy install-local)
+4. **`~/.config/kedoupi/lark-push/config.env`** ← recommended
+5. `<skill-root>/config.local.env` (in-package; wiped by update)
+6. `$LARK_PUSH_CONFIG`
+7. Env / CLI flags
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -201,8 +210,8 @@ Config is stored next to the skill install:
 Inspect:
 
 ```bash
-bash ~/.agents/skills/lark-push/scripts/lark-push config-path
 bash ~/.agents/skills/lark-push/scripts/lark-push which-config
+bash ~/.agents/skills/lark-push/scripts/lark-push doctor
 ```
 
 ## Usage

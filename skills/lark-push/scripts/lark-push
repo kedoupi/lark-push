@@ -603,9 +603,11 @@ Setup (first time):
   5) Skill config:                 bash scripts/lark-push init --chat-id oc_xxx
   6) Check everything:             bash scripts/lark-push doctor
 
-Config (follows skill install location):
-  Preferred durable file (survives skills update):
-    <skills-parent>/.skill-data/lark-push/config.env
+Config (outside the package so update is safe):
+  Recommended (default for init):
+    ~/.config/kedoupi/lark-push/config.env
+  Legacy still loaded / one-shot migrate:
+    ~/.agents/skills/.skill-data/…  or  <skills-parent>/.skill-data/…
 
 Examples:
   lark-push doctor

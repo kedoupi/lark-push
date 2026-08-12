@@ -97,6 +97,24 @@ npx skills add kedoupi/lark-push-skill --list
 
 在 [skills.sh](https://skills.sh/kedoupi/lark-push-skill) 浏览。
 
+### 安装后（复制粘贴）
+
+`npx skills add` 只装代码，不会自动写密钥。接着做：
+
+```bash
+SK=~/.agents/skills/lark-push
+
+bash $SK/scripts/lark-push doctor
+
+# 目标群 → ~/.config/kedoupi/lark-push/config.env
+bash $SK/scripts/lark-push init --chat-id 'oc_YOUR_CHAT_ID'
+
+# 本机飞书 CLI（只需一次）
+npm install -g @larksuite/cli
+LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
+  lark-cli auth status --json --verify
+```
+
 ## 前置条件
 
 | 需要 | 用途 | 如何安装 |
@@ -154,35 +172,44 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 ### 为什么不能只把配置放在 skill 包内？
 
 `npx skills update` 会 **删除并重新拷贝** skill 包目录。  
-本地配置不能只写在包内部。
+本地配置必须放在包 **外面**。推荐写配置文件，**不要**只写在 `~/.zshrc` 里。
 
-### 推荐持久路径
-
-配置放在 skill 安装目录的旁路数据区：
+### 推荐路径（`init` 默认）
 
 ```text
-~/.agents/skills/
-  lark-push/                 # skill 包（update 会 wipe）
-  .skill-data/
-    lark-push/
-      config.env             # 持久配置（update 保留）
+~/.config/kedoupi/lark-push/config.env    # chmod 600 · update 不会冲掉
+~/.agents/skills/lark-push/               # 仅 skill 代码（update 会 wipe）
+```
+
+```bash
+bash ~/.agents/skills/lark-push/scripts/lark-push init --chat-id 'oc_YOUR_CHAT_ID'
+# 可选：--as bot --footer 'via 我的机器人' --force
+```
+
+旧路径仍会读取（kedoupi 文件缺失时会一次性迁移过去）：
+
+```text
+~/.config/lark-push/config.env
+~/.agents/skills/.skill-data/lark-push/config.env
+<skills-parent>/.skill-data/lark-push/config.env
 ```
 
 ### 安装模式
 
 | 模式 | 布局 | 配置 |
 | --- | --- | --- |
-| **symlink**（默认） | 真文件在 `~/.agents/skills/lark-push/`，各 agent 软链 | 一份 durable 配置全 agent 共用 |
-| **copy**（`--copy`） | 每个 agent 独立拷贝 | 每份拷贝各自一份，或用 `--target global` 共享 |
+| **symlink**（默认） | 真文件在 `~/.agents/skills/lark-push/`，各 agent 软链 | 一份 kedoupi 配置全 agent 共用 |
+| **copy**（`--copy`） | 每个 agent 独立拷贝 | 同样用 kedoupi；必要时 `--target global` / `durable` |
 
 ### 加载顺序（后覆盖前）
 
-1. `~/.config/lark-push/config.env`（旧路径兼容）
-2. `~/.agents/skills/.skill-data/lark-push/config.env`（全局共享）
-3. `<skills-parent>/.skill-data/lark-push/config.env`（安装位置 durable）
-4. `<skill-root>/config.local.env`（包内临时，update 会丢）
-5. `$LARK_PUSH_CONFIG`
-6. CLI 参数
+1. `~/.config/lark-push/config.env`（旧路径）
+2. `~/.agents/skills/.skill-data/lark-push/config.env`（旧共享）
+3. `<skills-parent>/.skill-data/lark-push/config.env`（旧 install-local）
+4. **`~/.config/kedoupi/lark-push/config.env`** ← 推荐
+5. `<skill-root>/config.local.env`（包内临时，update 会丢）
+6. `$LARK_PUSH_CONFIG`
+7. 环境变量 / CLI 参数
 
 | 变量 | 默认 | 说明 |
 | --- | --- | --- |
@@ -194,8 +221,8 @@ bash ~/.agents/skills/lark-push/scripts/lark-push \
 查看：
 
 ```bash
-bash ~/.agents/skills/lark-push/scripts/lark-push config-path
 bash ~/.agents/skills/lark-push/scripts/lark-push which-config
+bash ~/.agents/skills/lark-push/scripts/lark-push doctor
 ```
 
 ## 使用示例
