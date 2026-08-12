@@ -3,7 +3,7 @@ name: lark-push
 description: Use when the user asks to send Feishu or Lark push notifications, code completion notices, daily reports, weekly reports, release summaries, or progress updates to a configured group chat.
 metadata:
   author: kedoupi
-  version: "1.4.0"
+  version: "1.4.1"
   requires:
     bins: ["lark-cli"]
 ---
@@ -71,16 +71,38 @@ The skill may be installed via symlink or copy. Resolve the real path:
 
 The script uses `pwd -P` internally, so symlinks resolve to the real directory and share one durable config.
 
+## Onboarding (install ≠ configure)
+
+**Do not** demand `chat-id` merely because the skill was installed. Ask when the
+user wants a **real send** (or environment check) and config is missing.
+
+| When | Agent action |
+| --- | --- |
+| User only asks how to install / preview | `doctor` / `--dry-run`; no secrets required for dry-run |
+| User wants to **send** and chat id missing | Paste `init` block; wait for `oc_…` or approval to run init |
+| User runs `doctor` | Checklist ends with copy-paste setup if config missing |
+
+```bash
+# After: npx skills add kedoupi/lark-push-skill -g --all
+bash ~/.agents/skills/lark-push/scripts/lark-push doctor
+
+# Configure target chat (recommended path):
+bash ~/.agents/skills/lark-push/scripts/lark-push init --chat-id 'oc_YOUR_CHAT_ID'
+# → ~/.config/kedoupi/lark-push/config.env
+```
+
+Never put chat config only inside the skill package; never edit the user’s shell rc for this.
+
 ## Config
 
-One-time after install:
+One-time after install (or when first sending):
 
 ```bash
 bash <skill-dir>/scripts/lark-push init --chat-id oc_xxxxxxxx
 ```
 
-Config is stored **outside** the skill package (survives `npx skills update`).
-See the [online docs](https://github.com/kedoupi/lark-push-skill#readme) for the full config layout, load order, and install-mode differences.
+Config is stored under **`~/.config/kedoupi/lark-push/`** by default (survives `npx skills update`).
+See the [online docs](https://github.com/kedoupi/lark-push-skill#readme) for load order and legacy paths.
 
 Inspect:
 

@@ -70,7 +70,7 @@ PASS=$((PASS + 1))
 
 echo "== version =="
 ver_out="$("$LP" --version)"
-assert_contains "version from SKILL.md" "lark-push v1.4.0" "$ver_out"
+assert_contains "version from SKILL.md" "lark-push v1.4.1" "$ver_out"
 
 echo "== doctor =="
 set +e

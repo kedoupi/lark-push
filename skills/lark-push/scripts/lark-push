@@ -354,10 +354,35 @@ EOF
   echo "Summary: ${ok} ok, ${warn} warn, ${fail} fail"
   if [[ "$fail" -gt 0 ]]; then
     echo "Required checks failed. Fix [FAIL] items above, then re-run doctor."
+    print_setup_hints
     return 1
   fi
   echo "Required checks passed. You can send with lark-push (bot identity is typical)."
+  print_setup_hints
   return 0
+}
+
+print_setup_hints() {
+  load_all_configs
+  if [[ -n "${LARK_PUSH_CHAT_ID:-}" && -f "$KEDOUPI_CONFIG_FILE" ]]; then
+    return 0
+  fi
+  cat <<EOF
+
+== After install / missing chat config ==
+Copy-paste (edit oc_… then run). Writes ~/.config/kedoupi/lark-push/config.env:
+
+  bash ${SCRIPT_DIR}/lark-push init --chat-id 'oc_YOUR_CHAT_ID'
+
+Also need Feishu CLI auth (once per machine):
+
+  npm install -g @larksuite/cli
+  lark-cli config init --help
+  LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \\
+    lark-cli auth status --json --verify
+
+Then:  bash ${SCRIPT_DIR}/lark-push doctor
+EOF
 }
 
 # ---------------------------------------------------------------------------

@@ -97,6 +97,24 @@ npx skills add kedoupi/lark-push-skill --list
 
 Browse on [skills.sh](https://skills.sh/kedoupi/lark-push-skill).
 
+### After install (copy-paste)
+
+`npx skills add` only installs code (no package post-hook). Configure next:
+
+```bash
+SK=~/.agents/skills/lark-push
+
+bash $SK/scripts/lark-push doctor
+
+# Target chat → ~/.config/kedoupi/lark-push/config.env
+bash $SK/scripts/lark-push init --chat-id 'oc_YOUR_CHAT_ID'
+
+# Feishu CLI (once per machine)
+npm install -g @larksuite/cli
+LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
+  lark-cli auth status --json --verify
+```
+
 ## Prerequisites
 
 | Need | Why | Install |
@@ -104,18 +122,7 @@ Browse on [skills.sh](https://skills.sh/kedoupi/lark-push-skill).
 | **Node.js + npm** | `npx skills add` and typical `lark-cli` install | [nodejs.org](https://nodejs.org/) LTS or `brew install node` |
 | **lark-cli** | Send messages to Feishu / Lark | `npm install -g @larksuite/cli` — [docs](https://github.com/larksuite/cli) |
 | **python3** | Default Card 2.0 format | macOS: `brew install python3` (or use `--format markdown`) |
-| **Chat id** | Where to post | `oc_xxx` from Feishu |
-
-After tools are installed:
-
-```bash
-# Feishu CLI auth / app config
-LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1 LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1 \
-  lark-cli auth status --json --verify
-
-# Full checklist (prints install hints when something is missing)
-bash ~/.agents/skills/lark-push/scripts/lark-push doctor
-```
+| **Chat id** | Where to post | `oc_xxx` from Feishu; `lark-push init` |
 
 If `npx` is missing, install Node first — this skill package does not bundle Node or `lark-cli`.
 
