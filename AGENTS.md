@@ -81,6 +81,6 @@ bash skills/lark-push/scripts/lark-push \
 1. Update `skills/lark-push/SKILL.md` description triggers if behavior changes
 2. Bump `metadata.version` when **behavior** changes (docs-only: no bump)
 3. Keep README EN + `README.zh-CN.md` in sync (CLI options, features, install)
-4. Run `bash tests/run.sh` (currently 25 offline checks)
+4. Run `bash tests/run.sh` (offline; no keychain / network)
 5. Tag releases when useful (`vX.Y.Z` matching `metadata.version`)
 6. Confirm `npx skills add <owner/repo> --list` shows `lark-push`

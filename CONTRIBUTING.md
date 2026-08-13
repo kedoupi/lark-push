@@ -6,7 +6,7 @@ Thanks for your interest in improving `lark-push`.
 
 ```bash
 git clone https://github.com/kedoupi/lark-push-skill.git
-cd lark-push
+cd lark-push-skill
 npx skills add ./ --list
 bash tests/run.sh
 ```
@@ -15,7 +15,7 @@ bash tests/run.sh
 
 1. Keep `skills/lark-push/SKILL.md` under ~500 lines.
 2. Do not hardcode private chat ids, tokens, or team-specific bot names.
-3. Prefer durable config under `<skills-parent>/.skill-data/lark-push/`.
+3. Prefer durable config at `~/.config/kedoupi/lark-push/config.env`. Legacy `.skill-data/` paths are read/migrate-only.
 4. Scripts must resolve their own directory with `pwd -P` so symlink installs work.
 5. Keep the default README in **English**; update `README.zh-CN.md` when user-facing docs change.
 6. Prefer bash + `lark-cli`; avoid new runtime dependencies beyond `python3` for Card JSON.

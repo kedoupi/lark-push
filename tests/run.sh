@@ -33,6 +33,18 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local name="$1" needle="$2" haystack="$3"
+  if [[ "$haystack" != *"$needle"* ]]; then
+    echo "  PASS  $name"
+    PASS=$((PASS + 1))
+  else
+    echo "  FAIL  $name (unexpected: $needle)"
+    echo "        got: ${haystack:0:200}"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 assert_exit() {
   local name="$1" expected="$2"
   shift 2
@@ -70,7 +82,7 @@ PASS=$((PASS + 1))
 
 echo "== version =="
 ver_out="$("$LP" --version)"
-assert_contains "version from SKILL.md" "lark-push v1.4.1" "$ver_out"
+assert_contains "version from SKILL.md" "lark-push v1.5.0" "$ver_out"
 
 echo "== doctor =="
 set +e
@@ -110,12 +122,27 @@ echo "== empty value rejected =="
 assert_exit "empty --body" 2 "$LP" --dry-run --chat-id oc_example --kind code --title T --body ""
 
 echo "== missing chat id =="
-# Durable config may exist on the machine; override via last-loaded config file.
+# Clear process env + override files so machine kedoupi config cannot leak in.
 empty_cfg="$(mktemp)"
 printf 'LARK_PUSH_CHAT_ID=\n' >"$empty_cfg"
-assert_exit "no chat id" 2 env LARK_PUSH_CONFIG="$empty_cfg" \
-  "$LP" --dry-run --kind code --title T --body hello
+# dry-run may preview without a real chat id
+assert_exit "dry-run without chat" 0 \
+  env -u LARK_PUSH_CHAT_ID LARK_PUSH_CONFIG="$empty_cfg" \
+  "$LP" --dry-run --kind code --title T --body hello --no-context
+# real send still requires chat id (fails before lark-cli)
+assert_exit "send without chat" 2 \
+  env -u LARK_PUSH_CHAT_ID LARK_PUSH_CONFIG="$empty_cfg" \
+  "$LP" --kind code --title T --body hello
 rm -f "$empty_cfg"
+
+echo "== install hint uses -skill =="
+help_out="$("$LP" --help 2>&1)"
+assert_contains "help install package" "kedoupi/lark-push-skill" "$help_out"
+
+echo "== dry-run masks chat id =="
+mask_err="$("$LP" --dry-run --chat-id oc_secretchat99 --kind notice --title T --body x --no-context 2>&1 >/dev/null)"
+assert_contains "masked chat prefix" "chat_id=oc_s" "$mask_err"
+assert_not_contains "no raw chat id" "oc_secretchat99" "$mask_err"
 
 echo "== invalid kind =="
 assert_exit "bad kind" 2 "$LP" --dry-run --chat-id oc_x --kind nope --title T --body x
@@ -155,18 +182,25 @@ python3 -c "import json,sys; json.loads(sys.argv[1])" "$card"
 assert_contains "escaped source" 'repo \\*main\\*' "$card"
 assert_contains "body stays markdown" '**bold** body' "$card"
 
-echo "== init quoting =="
+echo "== init plain KEY=value + allowlist load =="
 TMP="$(mktemp -d)"
-# Point skill parent via running from package; init writes durable next to skill package parent.
-# Use --target local inside package for isolated test, then delete.
 cfg_local="${ROOT}/skills/lark-push/config.local.env"
 rm -f "$cfg_local"
 "$LP" init --target local --chat-id 'oc_test_123' --footer "via bot's skill" --force >/dev/null
-# shellcheck disable=SC1090
-source "$cfg_local"
-assert_eq "init chat id" "oc_test_123" "${LARK_PUSH_CHAT_ID}"
-assert_eq "init footer with apostrophe" "via bot's skill" "${LARK_PUSH_FOOTER}"
-rm -f "$cfg_local"
+assert_contains "init wrote chat" "LARK_PUSH_CHAT_ID=oc_test_123" "$(cat "$cfg_local")"
+assert_contains "init wrote footer" "via bot's skill" "$(cat "$cfg_local")"
+assert_not_contains "init not shell-quoted" "\\'" "$(cat "$cfg_local")"
+# Loader (not bash source) must accept apostrophe in footer
+load_err="$(env -u LARK_PUSH_CHAT_ID -u LARK_PUSH_FOOTER -u LARK_PUSH_AS \
+  "$LP" --dry-run --kind notice --title T --body x --no-context 2>&1 >/dev/null)"
+assert_contains "loader masked chat" "oc_t…_123" "$load_err"
+# Reject malicious config function injection (must not source)
+evil_cfg="$(mktemp)"
+printf '%s\n' 'lark-cli() { echo HIJACKED; }' 'LARK_PUSH_CHAT_ID=oc_ok' >"$evil_cfg"
+evil_err="$(env LARK_PUSH_CONFIG="$evil_cfg" "$LP" which-config 2>&1)"
+assert_contains "allowlist chat loaded" "LARK_PUSH_CHAT_ID=" "$evil_err"
+assert_not_contains "no function injection line" "lark-cli()" "$evil_err"
+rm -f "$evil_cfg" "$cfg_local"
 rm -rf "$TMP"
 
 echo "== git hook disable =="

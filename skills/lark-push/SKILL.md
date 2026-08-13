@@ -3,7 +3,7 @@ name: lark-push
 description: Use when the user asks to send Feishu or Lark push notifications, code completion notices, daily reports, weekly reports, release summaries, or progress updates to a configured group chat.
 metadata:
   author: kedoupi
-  version: "1.4.1"
+  version: "1.5.0"
   requires:
     bins: ["lark-cli"]
 ---
