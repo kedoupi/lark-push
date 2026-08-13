@@ -58,7 +58,7 @@ Agent 完成工作
 
 ### 安装 / 运维通知
 
-本机完成 skill 安装与配置后的一次性通知。
+本机完成 skill 安装与配置后的一次性通知。仓库名、安装命令和配置路径已与当前约定对齐（`lark-push-skill`，`~/.config/kedoupi/lark-push/`）。
 
 ![安装通知](docs/screenshots/notice-install.png)
 
@@ -69,7 +69,7 @@ Agent 完成工作
 - 消息类型：`code` / `daily` / `weekly` / `release` / `notice`
 - `doctor` 环境自检，缺依赖时给出安装提示
 - 离线 `--dry-run`（不访问网络 / 不碰钥匙串）
-- 配置跟随安装目录，且 **`npx skills update` 不会冲掉**
+- 配置写在 `~/.config/kedoupi/lark-push/`，**`npx skills update` 不会冲掉**
 - 可选 git post-commit 钩子
 - 基于官方 [`lark-cli`](https://github.com/larksuite/cli)
 
@@ -336,7 +336,7 @@ LICENSE
 
 ```bash
 git clone https://github.com/kedoupi/lark-push-skill.git
-cd lark-push
+cd lark-push-skill
 
 # 离线自测（不碰钥匙串 / 网络）
 bash tests/run.sh

@@ -58,7 +58,7 @@ Focused daily for one product track (progress, verification, PR, remaining gates
 
 ### Setup / ops notice
 
-One-off notice after installing and configuring the skill on a machine.
+One-off notice after installing and configuring the skill. Install URL, command, and config path match the current kedoupi contract (`lark-push-skill`, `~/.config/kedoupi/lark-push/`).
 
 ![Install notice](docs/screenshots/notice-install.png)
 
@@ -69,7 +69,7 @@ One-off notice after installing and configuring the skill on a machine.
 - Message kinds: `code` / `daily` / `weekly` / `release` / `notice`
 - `doctor` environment checklist with install hints when deps are missing
 - Offline `--dry-run` (no network / no keychain)
-- Config follows the skill install tree and **survives** `npx skills update`
+- Durable config at `~/.config/kedoupi/lark-push/` **survives** `npx skills update`
 - Optional git post-commit hook
 - Built on official [`lark-cli`](https://github.com/larksuite/cli)
 
@@ -325,7 +325,7 @@ Compatible with `npx skills add <owner/repo>` discovery.
 
 ```bash
 git clone https://github.com/kedoupi/lark-push-skill.git
-cd lark-push
+cd lark-push-skill
 
 # Offline self-test (no keychain / network)
 bash tests/run.sh
